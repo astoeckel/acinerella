@@ -15,13 +15,12 @@
     along with Acinerella.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include "acinerella.h"
 #include <libavformat/avformat.h>
 #include <libavformat/avio.h>
 #include <libavcodec/avcodec.h>
-#include <libavutil/rational.h>
-#include <stdlib.h>
-
-#include "acinerella.h"
+#include <libavutil/avutil.h>
 
 #define AUDIO_BUFFER_BASE_SIZE ((AVCODEC_MAX_AUDIO_FRAME_SIZE * 3) / 2)
 
@@ -73,7 +72,10 @@ struct _ac_package_data {
 typedef struct _ac_package_data ac_package_data;
 typedef ac_package_data* lp_ac_package_data;
 
-//Memory manager
+//
+//--- Memory manager ---
+//
+
 ac_malloc_callback mgr_malloc = &malloc;
 ac_realloc_callback mgr_realloc =  &realloc;
 ac_free_callback mgr_free = &free;
@@ -83,7 +85,6 @@ void CALL_CONVT ac_mem_mgr(ac_malloc_callback mc, ac_realloc_callback rc, ac_fre
   mgr_realloc = rc;
   mgr_free = fc;
 }
-
 
 //
 //--- Initialization and Stream opening---
@@ -98,6 +99,7 @@ lp_ac_instance CALL_CONVT ac_init(void) {
   ptmp = (lp_ac_data)mgr_malloc(sizeof(ac_data));
   ptmp->instance.opened = 0;
   ptmp->instance.stream_count = 0;
+  ptmp->instance.output_format = AC_OUTPUT_RGB24;
   return (lp_ac_instance)ptmp;  
 }
 
@@ -221,6 +223,11 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb, lp_ac_str
         ((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->codec->height;
       info->additional_info.video_info.pixel_aspect = 
         av_q2d(((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->codec->sample_aspect_ratio);
+      //Sometime "pixel aspect" may be zero. Correct this.
+      if (info->additional_info.video_info.pixel_aspect == 0.0) {
+        info->additional_info.video_info.pixel_aspect = 1.0;
+      }
+      
       info->additional_info.video_info.frames_per_second = 
         av_q2d(((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->codec->time_base);
     break;
@@ -399,6 +406,16 @@ lp_ac_decoder CALL_CONVT ac_create_decoder(lp_ac_instance pacInstance, int nb) {
   return NULL;
 }
 
+enum PixelFormat convert_pix_format(ac_output_format fmt) {
+  switch (fmt) {
+    case AC_OUTPUT_RGB24: return PIX_FMT_RGB24;
+    case AC_OUTPUT_BGR24: return PIX_FMT_BGR24;
+    case AC_OUTPUT_RGBA32: return PIX_FMT_RGB32;
+    case AC_OUTPUT_BGRA32: return PIX_FMT_BGR32;        
+  }
+  return PIX_FMT_RGB24;
+}
+
 int ac_decode_video_package(lp_ac_package pPackage, lp_ac_video_decoder pDecoder) {
   int finished;
   avcodec_decode_video(
@@ -407,7 +424,7 @@ int ac_decode_video_package(lp_ac_package pPackage, lp_ac_video_decoder pDecoder
   
   if (finished) {
     img_convert(
-      (AVPicture*)(pDecoder->pFrameRGB), PIX_FMT_BGR24, 
+      (AVPicture*)(pDecoder->pFrameRGB), convert_pix_format(pDecoder->decoder.pacInstance->output_format), 
       (AVPicture*)(pDecoder->pFrame), pDecoder->pCodecCtx->pix_fmt, 
 			pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height);
       

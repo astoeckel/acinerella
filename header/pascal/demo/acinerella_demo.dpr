@@ -33,7 +33,6 @@ var
   i: integer;
   frm: TForm;
   bmp: TBitmap;
-  filename: string;
 
 function read_proc(sender: Pointer; buf: PChar; size: integer): integer; cdecl;
 begin
@@ -50,6 +49,7 @@ begin
     Writeln('Source file not specified. Simply drag and drop a video or an audio ' +
       'file on the executable. Press enter to close the program.');
     Readln;
+    halt;
   end;
   
   Application.Initialize;

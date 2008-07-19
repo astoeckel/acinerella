@@ -57,6 +57,14 @@ type
     {This decoder is used to decode an audio stram.}
     AC_DECODER_TYPE_AUDIO = 1
   );
+  
+  {Defines the format video/image data is outputted in}
+  TAc_output_format = (
+    AC_OUTPUT_RGB24 = 0,
+    AC_OUTPUT_BGR24 = 1,
+    AC_OUTPUT_RGBA32 = 2,
+    AC_OUTPUT_BGRA32 = 3
+  );
 
   {TAc_instance represents an Acinerella instance. Each instance can open and
    decode one file at once. There can be only 26 Acinerella instances opened at
@@ -67,6 +75,8 @@ type
     {Contains the count of streams the media file has. This value is available
      after calling the ac_open function.}
     stream_count: integer;
+    {Set this value to change the image output format}
+    output_format: TAc_output_format;
   end;         
   {Pointer on the Acinerella instance record.}
   PAc_instance = ^TAc_instance;
