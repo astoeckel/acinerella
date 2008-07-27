@@ -67,6 +67,7 @@ typedef ac_audio_decoder* lp_ac_audio_decoder;
 struct _ac_package_data {
   ac_package package;
   AVPacket ffpackage;
+  int pts;
 };
 
 typedef struct _ac_package_data ac_package_data;
@@ -99,7 +100,7 @@ lp_ac_instance CALL_CONVT ac_init(void) {
   ptmp = (lp_ac_data)mgr_malloc(sizeof(ac_data));
   ptmp->instance.opened = 0;
   ptmp->instance.stream_count = 0;
-  ptmp->instance.output_format = AC_OUTPUT_RGB24;
+  ptmp->instance.output_format = AC_OUTPUT_BGR24;
   return (lp_ac_instance)ptmp;  
 }
 
@@ -295,6 +296,9 @@ lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance) {
     pTmp->package.size = Package.size;
     pTmp->package.stream_index = Package.stream_index;
     pTmp->ffpackage = Package;
+    if (Package.dts != AV_NOPTS_VALUE) {
+      pTmp->pts = Package.dts;
+    }
     
     return (lp_ac_package)(pTmp);
   } else {
@@ -314,6 +318,16 @@ void CALL_CONVT ac_free_package(lp_ac_package pPackage) {
 //
 //--- Decoder management ---
 //
+
+enum PixelFormat convert_pix_format(ac_output_format fmt) {
+  switch (fmt) {
+    case AC_OUTPUT_RGB24: return PIX_FMT_RGB24;
+    case AC_OUTPUT_BGR24: return PIX_FMT_BGR24;
+    case AC_OUTPUT_RGBA32: return PIX_FMT_RGB32;
+    case AC_OUTPUT_BGRA32: return PIX_FMT_BGR32;        
+  }
+  return PIX_FMT_RGB24;
+}
 
 //Init a video decoder
 void* ac_create_video_decoder(lp_ac_instance pacInstance, lp_ac_stream_info info, int nb) {
@@ -343,14 +357,14 @@ void* ac_create_video_decoder(lp_ac_instance pacInstance, lp_ac_stream_info info
   pDecoder->pFrameRGB = avcodec_alloc_frame();
   
   //Reserve buffer memory
-  pDecoder->decoder.buffer_size = avpicture_get_size(PIX_FMT_RGB24, 
+  pDecoder->decoder.buffer_size = avpicture_get_size(convert_pix_format(pacInstance->output_format), 
     pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height);
   pDecoder->decoder.pBuffer = (uint8_t*)mgr_malloc(pDecoder->decoder.buffer_size);
 
   //Link decoder to buffer
   avpicture_fill(
     (AVPicture*)(pDecoder->pFrameRGB), 
-    pDecoder->decoder.pBuffer, PIX_FMT_RGB24,
+    pDecoder->decoder.pBuffer, convert_pix_format(pacInstance->output_format),
     pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height);
     
   return (void*)pDecoder;
@@ -404,16 +418,6 @@ lp_ac_decoder CALL_CONVT ac_create_decoder(lp_ac_instance pacInstance, int nb) {
   }
   
   return NULL;
-}
-
-enum PixelFormat convert_pix_format(ac_output_format fmt) {
-  switch (fmt) {
-    case AC_OUTPUT_RGB24: return PIX_FMT_RGB24;
-    case AC_OUTPUT_BGR24: return PIX_FMT_BGR24;
-    case AC_OUTPUT_RGBA32: return PIX_FMT_RGB32;
-    case AC_OUTPUT_BGRA32: return PIX_FMT_BGR32;        
-  }
-  return PIX_FMT_RGB24;
 }
 
 int ac_decode_video_package(lp_ac_package pPackage, lp_ac_video_decoder pDecoder) {
@@ -475,6 +479,9 @@ int ac_decode_audio_package(lp_ac_package pPackage, lp_ac_audio_decoder pDecoder
 }
 
 int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder) {
+  double timebase = 
+    av_q2d(((lp_ac_data)pDecoder->pacInstance)->pFormatCtx->streams[pPackage->stream_index]->time_base);
+  pDecoder->timecode = ((lp_ac_package_data)pPackage)->pts * timebase;
   if (pDecoder->type == AC_DECODER_TYPE_VIDEO) {
     return ac_decode_video_package(pPackage, (lp_ac_video_decoder)pDecoder);
   } 
@@ -491,6 +498,9 @@ void ac_free_video_decoder(lp_ac_video_decoder pDecoder) {
   av_free(pDecoder->pFrameRGB);    
   avcodec_close(pDecoder->pCodecCtx);
   
+  //Free reserved memory for the buffer
+  mgr_free(pDecoder->decoder.pBuffer);  
+  
   //Free reserved memory for decoder record
   mgr_free(pDecoder);
 }
@@ -499,6 +509,9 @@ void ac_free_video_decoder(lp_ac_video_decoder pDecoder) {
 void ac_free_audio_decoder(lp_ac_audio_decoder pDecoder) {
   av_free(pDecoder->decoder.pBuffer);
   avcodec_close(pDecoder->pCodecCtx);
+  
+  //Free reserved memory for the buffer
+  mgr_free(pDecoder->decoder.pBuffer);
 
   //Free reserved memory for decoder record
   mgr_free(pDecoder);
@@ -510,5 +523,5 @@ void CALL_CONVT ac_free_decoder(lp_ac_decoder pDecoder) {
   }
   else if (pDecoder->type == AC_DECODER_TYPE_AUDIO) {
     ac_free_audio_decoder((lp_ac_audio_decoder)pDecoder);  
-  }
+  }  
 }

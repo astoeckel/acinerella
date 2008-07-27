@@ -3,7 +3,8 @@ program acinerella_demo;
 {$APPTYPE CONSOLE}
 
 uses
-  Windows, Forms, Graphics, Classes, SysUtils, acinerella;
+  Windows, Forms, Graphics, Classes, SysUtils, acinerella,
+  AuWavout, SyncObjs;
 
 type
   TWAVHdr = packed Record
@@ -24,15 +25,15 @@ type
 var
   inst: PAc_instance;
   pack: PAc_package;
-  fs: TFileStream;
   wave: TFileStream;
   wave_hdr: TWAVHdr;
   info: TAc_stream_info;
   audiodecoder: PAc_decoder;
   videodecoder: PAc_decoder;
-  i: integer;
+  i, k: integer;
   frm: TForm;
   bmp: TBitmap;
+  fs: TFileStream;
 
 function read_proc(sender: Pointer; buf: PChar; size: integer): integer; cdecl;
 begin
@@ -40,6 +41,11 @@ begin
 end;
 
 begin
+  ReportMemoryLeaksOnShutdown := true;
+
+  for k := 0 to 2 do
+  begin
+    
   videodecoder := nil;
   audiodecoder := nil;
   wave := nil;
@@ -87,7 +93,7 @@ begin
         if audiodecoder = nil then
         begin
           audiodecoder := ac_create_decoder(inst, i);
-          wave := TFileStream.Create(ExtractFilePath(ParamStr(0))+'out.wav', fmCreate);
+          wave := TFileStream.Create(ExtractFilePath(ParamStr(0))+'out2.wav', fmCreate);
 
           with info.audio_info do
           begin
@@ -169,6 +175,12 @@ begin
     end;
   until (pack = nil) or ((not frm.Visible) and (videodecoder <> nil));
 
+  if videodecoder <> nil then
+    ac_free_decoder(videodecoder);
+
+  if audiodecoder <> nil then
+    ac_free_decoder(audiodecoder);   
+
   ac_close(inst);
 
   ac_free(inst);
@@ -186,6 +198,8 @@ begin
     wave.Free;
   end;
 
+
   frm.Free;
   bmp.Free;
+  end;
 end.

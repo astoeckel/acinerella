@@ -123,6 +123,9 @@ type
     {Contains the type of the decoder.}
     dec_type: TAc_decoder_type;
 
+    {The timecode of the currently decoded picture in seconds.}
+    timecode: double;
+
     {Contains information about the stream the decoder is attached to.}
     stream_info: TAc_stream_info;
     {The index of the stream the decoder is attached to.}

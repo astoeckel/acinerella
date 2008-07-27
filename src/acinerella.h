@@ -129,6 +129,9 @@ struct _ac_decoder {
   /*Contains the type of the decoder.*/
   ac_decoder_type type;
   
+  /*The timecode of the currently decoded picture in seconds */
+  double timecode;
+  
   /*Contains information about the stream the decoder is attached to.*/
   ac_stream_info stream_info;
   /*The index of the stream the decoder is attached to.*/
