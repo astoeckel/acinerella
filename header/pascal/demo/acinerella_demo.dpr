@@ -3,8 +3,7 @@ program acinerella_demo;
 {$APPTYPE CONSOLE}
 
 uses
-  Windows, Forms, Graphics, Classes, SysUtils, acinerella,
-  AuWavout, SyncObjs;
+  Windows, Forms, Graphics, Classes, SysUtils, acinerella, SyncObjs;
 
 type
   TWAVHdr = packed Record
@@ -30,7 +29,7 @@ var
   info: TAc_stream_info;
   audiodecoder: PAc_decoder;
   videodecoder: PAc_decoder;
-  i, k: integer;
+  i: integer;
   frm: TForm;
   bmp: TBitmap;
   fs: TFileStream;
@@ -43,9 +42,6 @@ end;
 begin
   ReportMemoryLeaksOnShutdown := true;
 
-  for k := 0 to 2 do
-  begin
-    
   videodecoder := nil;
   audiodecoder := nil;
   wave := nil;
@@ -201,5 +197,4 @@ begin
 
   frm.Free;
   bmp.Free;
-  end;
 end.

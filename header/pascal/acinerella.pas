@@ -25,6 +25,9 @@ unit acinerella;
 
 interface
 
+{$MINENUMSIZE 1}
+{$ALIGN 8}
+
 const
   {$IFDEF WIN32}
     ac_dll = 'acinerella.dll';
@@ -109,7 +112,7 @@ type
     stream_type: TAc_stream_type;
     {Additional info about the stream - use "video_info" when the stream
      is an video stream, "audio_info" when the stream is an audio stream.}
-    case additional_info: integer of
+    case byte of
       0: (video_info: TAc_video_stream_info);
       1: (audio_info: TAc_audio_stream_info);
   end;
@@ -132,7 +135,7 @@ type
     stream_index: integer;
 
     {Pointer to the buffer which contains the data.}
-    buffer: PChar;
+    buffer: PByte;
     {Size of the data in the buffer.}
     buffer_size: integer;
   end;
@@ -144,7 +147,7 @@ type
     {The data of the package. This data may not be accessible, because
      currently FFMpeg doesn't reserve this memory area using the Acinerella
      memory manager.}
-    data: PChar;
+    data: PByte;
     {The size of the package data.}
     size: integer;
     {The stream the package belongs to.}
@@ -155,7 +158,7 @@ type
 
   {Callback function used to ask the application to read data. Should return
    the number of bytes read or an value smaller than zero if an error occured.}
-  TAc_read_callback = function(sender: Pointer; buf: PChar; size: integer): integer; cdecl;
+  TAc_read_callback = function(sender: Pointer; buf: PByte; size: integer): integer; cdecl;
 
   {Callback function that is used to notify the application when the data stream
    is opened or closed. For example the file pointer should be resetted to zero
