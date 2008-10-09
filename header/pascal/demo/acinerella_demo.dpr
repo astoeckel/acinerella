@@ -2,10 +2,13 @@ program acinerella_demo;
 
 {$APPTYPE CONSOLE}
 
-uses
-  Windows, Forms, Graphics, Classes, SysUtils, acinerella, SyncObjs;
+{uses
+  Windows, Forms, Graphics, Classes, SysUtils, acinerella, SyncObjs;}
 
-type
+uses
+  sysutils, acinerella, classes;
+
+{type
   TWAVHdr = packed Record
     riff: array[0..3] of Char;
     len: DWord;
@@ -19,19 +22,19 @@ type
     wBitsPerSample: Word;
     cData: array[0..3] of Char;
     dwDataLen: DWord;
-  end;  
+  end;       }
 
 var
   inst: PAc_instance;
   pack: PAc_package;
-  wave: TFileStream;
-  wave_hdr: TWAVHdr;
-  info: TAc_stream_info;
-  audiodecoder: PAc_decoder;
-  videodecoder: PAc_decoder;
+//  wave: TFileStream;
+//  wave_hdr: TWAVHdr;
+//  info: TAc_stream_info;
+//  audiodecoder: PAc_decoder;
+//  videodecoder: PAc_decoder;
   i: integer;
-  frm: TForm;
-  bmp: TBitmap;
+//  frm: TForm;
+//  bmp: TBitmap;
   fs: TFileStream;
 
 function read_proc(sender: Pointer; buf: PChar; size: integer): integer; cdecl;
@@ -40,36 +43,55 @@ begin
 end;
 
 begin
-  ReportMemoryLeaksOnShutdown := true;
+  //ReportMemoryLeaksOnShutdown := true;
 
-  videodecoder := nil;
-  audiodecoder := nil;
-  wave := nil;
+//  videodecoder := nil;
+//  audiodecoder := nil;
+//  wave := nil;
 
-  if not FileExists(ParamStr(1)) then
+{  if not FileExists(ParamStr(1)) then
   begin
     Writeln('Source file not specified. Simply drag and drop a video or an audio ' +
       'file on the executable. Press enter to close the program.');
     Readln;
     halt;
-  end;
-  
-  Application.Initialize;
-  frm := TForm.Create(nil);
+  end;     }
 
-  bmp := TBitmap.Create;
-  bmp.PixelFormat := pf24Bit;
+//  Application.Initialize;
+//  frm := TForm.Create(nil);
 
-  fs := TFileStream.Create(ParamStr(1), fmOpenRead);
+//  bmp := TBitmap.Create;
+//  bmp.PixelFormat := pf24Bit;
+
+  //fs := TFileStream.Create(ParamStr(1), fmOpenRead);
+  fs := TFileStream.Create('c:\test.mp3', fmOpenRead);
   fs.Position := 0;
 
   Writeln('Acinerella Pascal Test Program');
   Writeln('------------------------------');
   Writeln;
 
-  inst := ac_init();
+  try
+    for i := 0 to 25 do
+    begin
+      inst := ac_init();
+      fs.Position := 0;
+      ac_open(inst, nil, nil, @read_proc, nil);
+      pack := ac_read_package(inst);
+      ac_free_package(pack);
+      ac_close(inst);
+      ac_free(inst);
+    end;
+  except
+    on e: Exception do
+    begin
+      Writeln(e.Message);
+      Readln;
+    end;
+  end;
 
-  ac_open(inst, nil, nil, @read_proc, nil);
+{  halt;
+  
   Writeln('Count of Datastreams: ', inst^.stream_count);
   for i := 0 to inst^.stream_count - 1 do
   begin
@@ -89,7 +111,7 @@ begin
         if audiodecoder = nil then
         begin
           audiodecoder := ac_create_decoder(inst, i);
-          wave := TFileStream.Create(ExtractFilePath(ParamStr(0))+'out2.wav', fmCreate);
+          wave := TFileStream.Create(ExtractFilePath(ParamStr(0))+'out.wav', fmCreate);
 
           with info.audio_info do
           begin
@@ -119,7 +141,7 @@ begin
         Writeln(' * Width             : ', info.video_info.frame_width, 'px');
         Writeln(' * Height            : ', info.video_info.frame_height, 'px');
         Writeln(' * Pixel aspect      : ', FormatFloat('#.##', info.video_info.pixel_aspect));
-        Writeln(' * Frames per Second : ', FormatFloat('#.##', 1 / info.video_info.frames_per_second));
+        Writeln(' * Frames per second : ', FormatFloat('#.##', 1 / info.video_info.frames_per_second));
 
         if videodecoder = nil then
         begin
@@ -154,6 +176,9 @@ begin
       begin
         if (ac_decode_package(pack, videodecoder) > 0) then
         begin
+          //This demo uses the GDI to draw the video data - this is a very simple
+          //way but produces a very bad quality. You should use a video overlay or
+          //OpenGL/Direct3D to draw your video data.
           Move(videodecoder^.buffer^, bmp.Scanline[bmp.Height-1]^, videodecoder^.buffer_size);
           StretchBlt(frm.Canvas.Handle, 0, frm.Height, frm.Width, -frm.Height, bmp.Canvas.Handle,
             0, 0, bmp.Width, bmp.Height, SRCCOPY);
@@ -196,5 +221,5 @@ begin
 
 
   frm.Free;
-  bmp.Free;
+  bmp.Free;     }
 end.

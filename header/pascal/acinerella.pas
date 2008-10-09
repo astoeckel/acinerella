@@ -112,7 +112,11 @@ type
     stream_type: TAc_stream_type;
     {Additional info about the stream - use "video_info" when the stream
      is an video stream, "audio_info" when the stream is an audio stream.}
+    {$IFNDEF VER160}
+    case additional_info: byte of
+    {$ELSE}
     case byte of
+    {$ENDIF}
       0: (video_info: TAc_video_stream_info);
       1: (audio_info: TAc_audio_stream_info);
   end;

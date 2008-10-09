@@ -25,7 +25,7 @@
 #ifdef _WIN32
 #define CALL_CONVT __cdecl
 #else
-#define CALL_CONVT  
+#define CALL_CONVT __cdecl
 #endif
 
 typedef long long int64;

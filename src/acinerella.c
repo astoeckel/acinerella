@@ -74,6 +74,59 @@ typedef struct _ac_package_data ac_package_data;
 typedef ac_package_data* lp_ac_package_data;
 
 //
+//---Small functions that are missing in FFMpeg ;-) ---
+//
+
+//Deletes a protocol from the FFMpeg protocol list
+void unregister_protocol(URLProtocol *protocol) {
+  URLProtocol *pcurrent = first_protocol;
+  URLProtocol *plast = NULL;	
+  
+  while (pcurrent != NULL) {
+    //Search for the protocol that is given as parameter
+    if (pcurrent == protocol) {
+      if (plast != NULL) {
+        plast->next = pcurrent->next;
+        return;
+      } else {
+        first_protocol = pcurrent->next;
+        return;
+      }
+    }
+    plast = pcurrent;
+    pcurrent = pcurrent->next;
+  }
+}
+
+void unique_protocol_name(char *name) {
+  URLProtocol *p = first_protocol;
+  int i = 0;
+  
+  //Copy the string "acinx" to the string
+  strcpy(name, "acinx");
+  
+  while (1) {
+    //Replace the "x" in the string with a character
+    name[4] = (char)(65 + i);
+    
+    while (1) {   
+      //There is no element in the list or we are at the end of the list. In this case the string
+      //is unique
+      if (p == NULL) {
+        return;
+      }    
+      //We got an element from the list, compare its name to our string. If they are the same,
+      //The string isn't unique and we have to create a new one.
+      if (strcmp(p->name, name)) {
+        break;
+      }
+      p = p->next;
+    }    
+    i++;
+  }  
+}
+
+//
 //--- Memory manager ---
 //
 
@@ -105,12 +158,14 @@ lp_ac_instance CALL_CONVT ac_init(void) {
 }
 
 void CALL_CONVT ac_free(lp_ac_instance pacInstance) {
+  //Close the decoder. If it is already closed, this won't be a problem as ac_close checks the streams state
+  ac_close(pacInstance);
+  
   if (pacInstance != NULL) {
     mgr_free((lp_ac_data)pacInstance);
   }
 }
 
-int protocol_number;
 lp_ac_data last_instance;
 
 //Function called by FFMpeg when opening an ac stream.
@@ -162,14 +217,11 @@ int CALL_CONVT ac_open(
   ((lp_ac_data)pacInstance)->sender = sender;
   ((lp_ac_data)pacInstance)->open_proc = open_proc;  
   ((lp_ac_data)pacInstance)->read_proc = read_proc;
-  ((lp_ac_data)pacInstance)->close_proc = close_proc;    
-  
-  //Increase protocol number for having an unique identifier
-  ++protocol_number;  
-  
+  ((lp_ac_data)pacInstance)->close_proc = close_proc;      
+ 
   //Create a new protocol name
-  strcpy(((lp_ac_data)pacInstance)->protocol_name, "acinx");
-  ((lp_ac_data)pacInstance)->protocol_name[4] = (char)(protocol_number + 65);
+  unique_protocol_name(((lp_ac_data)pacInstance)->protocol_name);
+  
  
   //Create a new protocol
   ((lp_ac_data)pacInstance)->protocol.name = ((lp_ac_data)pacInstance)->protocol_name;
@@ -197,14 +249,16 @@ int CALL_CONVT ac_open(
     return -1;
   }
   
-  //Set some information in the instance variable
+  //Set some information in the instance variable 
   pacInstance->stream_count = ((lp_ac_data)pacInstance)->pFormatCtx->nb_streams;
   pacInstance->opened = pacInstance->stream_count > 0;  
 }
 
 void CALL_CONVT ac_close(lp_ac_instance pacInstance) {
   if (pacInstance->opened) {
+    unregister_protocol(&((lp_ac_data)(pacInstance))->protocol);
     av_close_input_file(((lp_ac_data)(pacInstance))->pFormatCtx);
+    pacInstance->opened = 0;    
   }
 }
 void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb, lp_ac_stream_info info) {
@@ -256,11 +310,11 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb, lp_ac_str
               16;                            
         break;
         
-        //24-Bit
+/*        //24-Bit (removed in the newest ffmpeg version)
         case SAMPLE_FMT_S24:
           info->additional_info.audio_info.bit_depth = 
               24;                                          
-        break;
+        break; */
         
         //32-Bit
         case SAMPLE_FMT_S32: case SAMPLE_FMT_FLT:
@@ -454,9 +508,9 @@ int ac_decode_audio_package(lp_ac_package pPackage, lp_ac_audio_decoder pDecoder
     
     //Decode a piece of the audio buffer. len1 contains the count of bytes read from the soure buffer.
     len1 = avcodec_decode_audio2(
-      pDecoder->pCodecCtx, (uint16_t*)((uint8_t*)pDecoder->decoder.pBuffer + dest_buffer_pos), &size, 
+      pDecoder->pCodecCtx, (uint16_t*)(pDecoder->decoder.pBuffer + dest_buffer_pos), &size, 
       src_buffer, src_buffer_size);
-      
+     
     src_buffer_size -= len1;
     src_buffer      += len1;
     

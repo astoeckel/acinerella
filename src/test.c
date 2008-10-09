@@ -15,30 +15,34 @@
     along with Acinerella.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*
+WARNING: 
+Depending on the implementation of libc, reading of files larger than 1GB might not work.
+This is not a problem with Acinerella and can be solved by using stream objects delivered
+by your OS.
+*/
+
 #include "acinerella.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
-//#include <sys/types.h>
-//#include <sys/stat.h>
 
 char *filename;
-int fd;
+int source;
 
 int CALL_CONVT read_callback(void *sender, char *buf, int size) {
-  //printf("Lese %d Bytes. \n", size);
-  return read(fd, buf, size);
+  return read(source, buf, size);
 }
 
 int CALL_CONVT open_callback(void *sender) {
-  fd = open(filename, O_RDONLY, 0666);  
-  printf("÷ffne '%s' \n", filename);
+  source = open(filename, O_RDONLY | O_BINARY);  
+  printf("Open '%s' \n", filename);
   return 0;
 }
 
 int CALL_CONVT close_callback(void *sender) {
-  printf("Schlieﬂe... \n");  
-  return close(fd);  
+  printf("Closing file\n");  
+  return close(source);  
 }
 
 void SaveFrame(char *buffer, int width, int height, int iFrame) {
@@ -68,91 +72,99 @@ int main(int argc, char *argv[]) {
   lp_ac_decoder pAudioDecoder = NULL;    
   int i;
   int framenb = 0;
-  FILE *pAudiofile;
+  int audiofile;
   
-  pAudiofile = fopen("test.raw", "w");
+  //Open a file for raw audio output
+  audiofile = open("test.raw", O_WRONLY | O_CREAT | O_BINARY);
   
+  //Save the filename of the file that should be opened in a string
   filename = argv[1];
   
+  //Initialize an instance of Acinerella
   pData = ac_init();
+  
+  //Set the output format to one that is compilant with the ppm picture format byte order
+  pData->output_format = AC_OUTPUT_BGR24;
+  
+  //Open the video/audio file by passing the function pointers to the open, read and close callbacks to Acinerella.
+  //Only the read callback is neccessary, all other callbacks may be 0
   ac_open(pData, 0, &open_callback, &read_callback, &close_callback);
   
-  printf("Anzahl der Video-/Audiodatenstrˆme: %d \n", pData->stream_count);
+  //Display the count of the found data streams.
+  printf("Count of Datastreams:  %d \n", pData->stream_count);
   
+  //Go through every stream and fetch information about it.
   for (i = pData->stream_count - 1; i >= 0; --i) {
-    printf("\nInformationen f¸r Datenstrom %d: \n", i);
+    printf("\nInformation about stream %d: \n", i);
+    
     ac_stream_info info;
+    
+    //Get information about stream no. i
     ac_get_stream_info(pData, i, &info);    
     
     switch (info.stream_type) {
+      //Stream is a video stream - display information about it
       case AC_STREAM_TYPE_VIDEO:
-        printf("Strom ist ein Videodatenstrom. \n");
-        printf("Bild Breite: %d, Frame Hˆhe: %d \n", 
-          info.additional_info.video_info.frame_width,
-          info.additional_info.video_info.frame_height);
-        printf("Bildpunktseitenverh‰ltnis: %f \n", 
-          info.additional_info.video_info.pixel_aspect);
-        printf("Bilder pro Sekunde: %lf \n", 
-          1.0 / info.additional_info.video_info.frames_per_second);          
+        printf("Stream is an video stream.\n--------------------------\n\n");
+        printf(" * Width            : %d\n", info.additional_info.video_info.frame_width);
+        printf(" * Height           : %d\n", info.additional_info.video_info.frame_height);
+        printf(" * Pixel aspect     : %f\n", info.additional_info.video_info.pixel_aspect);
+        printf(" * Frames per second: %lf \n",  1.0 / info.additional_info.video_info.frames_per_second);          
           
+        //If we don't have a video decoder now, try to create a video decoder for this video stream
         if (pVideoDecoder == NULL) {
-          printf("\nSuche Decoder f¸r Videodatenstrom...\n");
           pVideoDecoder = ac_create_decoder(pData, i);
         }
       break;
       
+      //Stream is an audio stream - display information about it
       case AC_STREAM_TYPE_AUDIO:
-        printf("Strom ist ein Audiodatenstrom. \n");
-        printf("Anzahl der Abtastpunkte pro Sekunde: %d \n", 
-          info.additional_info.audio_info.samples_per_second);
-        printf("Bittiefe eines Abtastpunkts: %d \n", 
-          info.additional_info.audio_info.bit_depth);
-        printf("Anzahl der Audiokan‰le: %d \n", 
-          info.additional_info.audio_info.channel_count);
+        printf("Stream is an audio stream.\n--------------------------\n\n");
+        printf("  * Samples per Second: %d\n", info.additional_info.audio_info.samples_per_second);
+        printf("  * Channel count     : %d\n", info.additional_info.audio_info.channel_count);
+        printf("  * Bit depth         : %d\n", info.additional_info.audio_info.bit_depth);
           
+        //If we don't have an audio decoder now, try to create an audio decoder for this audio stream
         if (pAudioDecoder == NULL) {
-          printf("\nSuche Decoder f¸r Audiodatenstrom...\n");
           pAudioDecoder = ac_create_decoder(pData, i);
         }          
       break;      
     }
   }
   
-  if (pVideoDecoder != NULL) {
-    printf("\nVideodecoder f¸r ersten Videodatenstrom gefunden.\n");
+  //Check whether the audio file was opened properly
+  if (!pData->opened) {
+    printf("No video/audio information found.");
+    return 0;
   }
-  
-  if (pAudioDecoder != NULL) {
-    printf("\nAudiodecoder f¸r ersten Audiodatenstrom gefunden.\n");
-  }  
-  
-  printf("\nLese Paketdaten...\n");
+
+  //Read all packets from the stream and try to decode them
+  printf("\nReading packet data...\n\n");
   
   lp_ac_package pckt = NULL;
   do {
     pckt = ac_read_package(pData);
     if (pckt != NULL) {
-      printf("Paket f¸r Strom %d gefunden. \r", pckt->stream_index);
+      printf("Found packet for stream %d. \r", pckt->stream_index);
       
       if ((pVideoDecoder != NULL) && (pckt->stream_index == pVideoDecoder->stream_index)) {
+        //The packet is for the video stream, try the decode it
         if (ac_decode_package(pckt, pVideoDecoder)) {
+          //Save every 100th video frame to a ppm file
           if (framenb % 100 == 0) {
-          printf("\nSpeichere Videoframe Nr. %d.\n", framenb);
             SaveFrame(
-               pVideoDecoder->pBuffer, 
-               pVideoDecoder->stream_info.additional_info.video_info.frame_width, 
-               pVideoDecoder->stream_info.additional_info.video_info.frame_height, framenb);
-          }
+              pVideoDecoder->pBuffer, 
+              pVideoDecoder->stream_info.additional_info.video_info.frame_width, 
+              pVideoDecoder->stream_info.additional_info.video_info.frame_height, framenb);          
+          }          
           ++framenb;
-        }      
+        }
       }
       
       if ((pAudioDecoder != NULL) && (pckt->stream_index == pAudioDecoder->stream_index)) {
+        //The packet is for the audio stream, decode it and write the data to the raw audio file
         if (ac_decode_package(pckt, pAudioDecoder)) {
-          fwrite(
-            pAudioDecoder->pBuffer, 1, 
-            pAudioDecoder->buffer_size, 
-            pAudiofile);
+          write(audiofile, pAudioDecoder->pBuffer, pAudioDecoder->buffer_size);
         }
       }        
       ac_free_package(pckt);
@@ -160,16 +172,16 @@ int main(int argc, char *argv[]) {
   } while(pckt != NULL);
   
   if (pVideoDecoder != NULL) {
-    printf("\nSchlieﬂe Videodecoder.\n");
     ac_free_decoder(pVideoDecoder);
   }
   
   if (pAudioDecoder != NULL) {
-    printf("\nSchlieﬂe Audiodecoder.\n");
     ac_free_decoder(pAudioDecoder);
   }  
   
-  fclose(pAudiofile);
+  printf("End of stream reached                    \n");
+  
+  close(audiofile);
   
   ac_close(pData);
   ac_free(pData);  
