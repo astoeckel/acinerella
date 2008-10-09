@@ -2,13 +2,10 @@ program acinerella_demo;
 
 {$APPTYPE CONSOLE}
 
-{uses
-  Windows, Forms, Graphics, Classes, SysUtils, acinerella, SyncObjs;}
-
 uses
-  sysutils, acinerella, classes;
+  Windows, Forms, Graphics, Classes, SysUtils, acinerella, SyncObjs;
 
-{type
+type
   TWAVHdr = packed Record
     riff: array[0..3] of Char;
     len: DWord;
@@ -22,19 +19,19 @@ uses
     wBitsPerSample: Word;
     cData: array[0..3] of Char;
     dwDataLen: DWord;
-  end;       }
+  end;
 
 var
   inst: PAc_instance;
   pack: PAc_package;
-//  wave: TFileStream;
-//  wave_hdr: TWAVHdr;
-//  info: TAc_stream_info;
-//  audiodecoder: PAc_decoder;
-//  videodecoder: PAc_decoder;
+  wave: TFileStream;
+  wave_hdr: TWAVHdr;
+  info: TAc_stream_info;
+  audiodecoder: PAc_decoder;
+  videodecoder: PAc_decoder;
   i: integer;
-//  frm: TForm;
-//  bmp: TBitmap;
+  frm: TForm;
+  bmp: TBitmap;
   fs: TFileStream;
 
 function read_proc(sender: Pointer; buf: PChar; size: integer): integer; cdecl;
@@ -43,55 +40,36 @@ begin
 end;
 
 begin
-  //ReportMemoryLeaksOnShutdown := true;
+  ReportMemoryLeaksOnShutdown := true;
 
-//  videodecoder := nil;
-//  audiodecoder := nil;
-//  wave := nil;
+  videodecoder := nil;
+  audiodecoder := nil;
+  wave := nil;
 
-{  if not FileExists(ParamStr(1)) then
+  if not FileExists(ParamStr(1)) then
   begin
     Writeln('Source file not specified. Simply drag and drop a video or an audio ' +
       'file on the executable. Press enter to close the program.');
     Readln;
     halt;
-  end;     }
+  end;
 
-//  Application.Initialize;
-//  frm := TForm.Create(nil);
+  Application.Initialize;
+  frm := TForm.Create(nil);
 
-//  bmp := TBitmap.Create;
-//  bmp.PixelFormat := pf24Bit;
+  bmp := TBitmap.Create;
+  bmp.PixelFormat := pf24Bit;
 
-  //fs := TFileStream.Create(ParamStr(1), fmOpenRead);
-  fs := TFileStream.Create('c:\test.mp3', fmOpenRead);
+  fs := TFileStream.Create(ParamStr(1), fmOpenRead);
   fs.Position := 0;
 
   Writeln('Acinerella Pascal Test Program');
   Writeln('------------------------------');
   Writeln;
 
-  try
-    for i := 0 to 25 do
-    begin
-      inst := ac_init();
-      fs.Position := 0;
-      ac_open(inst, nil, nil, @read_proc, nil);
-      pack := ac_read_package(inst);
-      ac_free_package(pack);
-      ac_close(inst);
-      ac_free(inst);
-    end;
-  except
-    on e: Exception do
-    begin
-      Writeln(e.Message);
-      Readln;
-    end;
-  end;
+  inst := ac_init();
+  ac_open(inst, nil, nil, @read_proc, nil);
 
-{  halt;
-  
   Writeln('Count of Datastreams: ', inst^.stream_count);
   for i := 0 to inst^.stream_count - 1 do
   begin
@@ -191,7 +169,7 @@ begin
           wave.Write(audiodecoder^.buffer^, audiodecoder^.buffer_size);
         end;
       end;
-      
+
       ac_free_package(pack);
     end;
   until (pack = nil) or ((not frm.Visible) and (videodecoder <> nil));
@@ -200,12 +178,12 @@ begin
     ac_free_decoder(videodecoder);
 
   if audiodecoder <> nil then
-    ac_free_decoder(audiodecoder);   
+    ac_free_decoder(audiodecoder);
 
   ac_close(inst);
 
   ac_free(inst);
-  
+
   fs.Free;
 
   if wave <> nil then
@@ -221,5 +199,5 @@ begin
 
 
   frm.Free;
-  bmp.Free;     }
+  bmp.Free;     
 end.
