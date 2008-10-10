@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
   pData = ac_init();
   
   //Set the output format to one that is compilant with the ppm picture format byte order
-  pData->output_format = AC_OUTPUT_BGR24;
+  pData->output_format = AC_OUTPUT_RGB24;
   
   //Open the video/audio file by passing the function pointers to the open, read and close callbacks to Acinerella.
   //Only the read callback is neccessary, all other callbacks may be 0

@@ -21,6 +21,8 @@
 #include <libavformat/avio.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/avutil.h>
+#include <libswscale/swscale.h>
+#include <string.h>
 
 #define AUDIO_BUFFER_BASE_SIZE ((AVCODEC_MAX_AUDIO_FRAME_SIZE * 3) / 2)
 
@@ -48,7 +50,8 @@ struct _ac_video_decoder {
   AVCodec *pCodec;
   AVCodecContext *pCodecCtx;
   AVFrame *pFrame;
-  AVFrame *pFrameRGB;  
+  AVFrame *pFrameRGB; 
+  struct SwsContext *pSwsCtx;  
 };
 
 typedef struct _ac_video_decoder ac_video_decoder;
@@ -410,6 +413,8 @@ void* ac_create_video_decoder(lp_ac_instance pacInstance, lp_ac_stream_info info
   pDecoder->pFrame = avcodec_alloc_frame();
   pDecoder->pFrameRGB = avcodec_alloc_frame();
   
+  pDecoder->pSwsCtx = NULL;
+  
   //Reserve buffer memory
   pDecoder->decoder.buffer_size = avpicture_get_size(convert_pix_format(pacInstance->output_format), 
     pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height);
@@ -481,11 +486,24 @@ int ac_decode_video_package(lp_ac_package pPackage, lp_ac_video_decoder pDecoder
     pPackage->data, pPackage->size);
   
   if (finished) {
-    img_convert(
+/*    img_convert(
       (AVPicture*)(pDecoder->pFrameRGB), convert_pix_format(pDecoder->decoder.pacInstance->output_format), 
       (AVPicture*)(pDecoder->pFrame), pDecoder->pCodecCtx->pix_fmt, 
-			pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height);
+			pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height);*/
       
+      pDecoder->pSwsCtx = sws_getCachedContext(pDecoder->pSwsCtx,
+        pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height, pDecoder->pCodecCtx->pix_fmt,
+        pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height, convert_pix_format(pDecoder->decoder.pacInstance->output_format),
+                                  SWS_BICUBIC, NULL, NULL, NULL);
+                                  
+      sws_scale(
+        pDecoder->pSwsCtx,
+        pDecoder->pFrame->data,
+        pDecoder->pFrame->linesize,
+        0, //?
+        pDecoder->pCodecCtx->height, 
+        pDecoder->pFrameRGB->data, 
+        pDecoder->pFrameRGB->linesize);
     return 1;
   }
   
@@ -550,7 +568,11 @@ void ac_free_video_decoder(lp_ac_video_decoder pDecoder) {
   av_free(pDecoder->decoder.pBuffer);  
   av_free(pDecoder->pFrame);
   av_free(pDecoder->pFrameRGB);    
+  if (pDecoder->pSwsCtx != NULL) {
+    sws_freeContext(pDecoder->pSwsCtx);
+  }
   avcodec_close(pDecoder->pCodecCtx);
+  
   
   //Free reserved memory for the buffer
   mgr_free(pDecoder->decoder.pBuffer);  
