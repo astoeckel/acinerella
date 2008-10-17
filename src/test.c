@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
   
   //Open the video/audio file by passing the function pointers to the open, read and close callbacks to Acinerella.
   //Only the read callback is neccessary, all other callbacks may be 0
-  ac_open(pData, 0, &open_callback, &read_callback, &close_callback);
+  ac_open(pData, 0, &open_callback, &read_callback, NULL, &close_callback);
   
   //Display the count of the found data streams.
   printf("Count of Datastreams:  %d \n", pData->stream_count);

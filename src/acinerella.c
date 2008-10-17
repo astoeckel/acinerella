@@ -36,6 +36,7 @@ struct _ac_data {
   void *sender;
   ac_openclose_callback open_proc;
   ac_read_callback read_proc; 
+  ac_seek_callback seek_proc; 
   ac_openclose_callback close_proc; 
   
   URLProtocol protocol;
@@ -120,7 +121,7 @@ void unique_protocol_name(char *name) {
       }    
       //We got an element from the list, compare its name to our string. If they are the same,
       //The string isn't unique and we have to create a new one.
-      if (strcmp(p->name, name)) {
+      if (strcmp(p->name, name) == 0) {
         break;
       }
       p = p->next;
@@ -175,7 +176,7 @@ lp_ac_data last_instance;
 static int file_open(URLContext *h, const char *filename, int flags)
 {
   h->priv_data = last_instance;
-  h->is_streamed = 1;
+  h->is_streamed = last_instance->seek_proc == NULL;
   
   if (last_instance->open_proc != NULL) {
     last_instance->open_proc(last_instance->sender);
@@ -194,6 +195,17 @@ static int file_read(URLContext *h, unsigned char *buf, int size)
   return -1;
 }
 
+//Function called by FFMpeg when seeking the stream
+
+int64_t file_seek(URLContext *h, int64_t pos, int whence)
+{
+  if (((lp_ac_data)(h->priv_data))->seek_proc != NULL) {
+    return ((lp_ac_data)(h->priv_data))->seek_proc(((lp_ac_data)(h->priv_data))->sender, pos, whence);
+  } 
+
+  return -1;
+}
+
 //Function called by FFMpeg when the stream should be closed
 static int file_close(URLContext *h)
 {
@@ -209,6 +221,7 @@ int CALL_CONVT ac_open(
   void *sender, 
   ac_openclose_callback open_proc,
   ac_read_callback read_proc, 
+  ac_seek_callback seek_proc,
   ac_openclose_callback close_proc) {
   
   pacInstance->opened = 0;
@@ -220,18 +233,22 @@ int CALL_CONVT ac_open(
   ((lp_ac_data)pacInstance)->sender = sender;
   ((lp_ac_data)pacInstance)->open_proc = open_proc;  
   ((lp_ac_data)pacInstance)->read_proc = read_proc;
+  ((lp_ac_data)pacInstance)->seek_proc = seek_proc;
   ((lp_ac_data)pacInstance)->close_proc = close_proc;      
  
   //Create a new protocol name
-  unique_protocol_name(((lp_ac_data)pacInstance)->protocol_name);
-  
+  unique_protocol_name(((lp_ac_data)pacInstance)->protocol_name);  
  
   //Create a new protocol
   ((lp_ac_data)pacInstance)->protocol.name = ((lp_ac_data)pacInstance)->protocol_name;
   ((lp_ac_data)pacInstance)->protocol.url_open = &file_open;
   ((lp_ac_data)pacInstance)->protocol.url_read = &file_read;
   ((lp_ac_data)pacInstance)->protocol.url_write = NULL;
-  ((lp_ac_data)pacInstance)->protocol.url_seek = NULL;
+  if (!(seek_proc == NULL)) {
+    ((lp_ac_data)pacInstance)->protocol.url_seek = &file_seek;
+  } else {
+    ((lp_ac_data)pacInstance)->protocol.url_seek = NULL;
+  }
   ((lp_ac_data)pacInstance)->protocol.url_close = &file_close;
   
   //Register the generated protocol
@@ -286,8 +303,9 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb, lp_ac_str
         info->additional_info.video_info.pixel_aspect = 1.0;
       }
       
-      info->additional_info.video_info.frames_per_second = 
-        av_q2d(((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->codec->time_base);
+    info->additional_info.video_info.frames_per_second =
+      (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.num /
+      (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.den ;
     break;
     case CODEC_TYPE_AUDIO:
       //Set stream type to "AUDIO"

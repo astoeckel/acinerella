@@ -23,16 +23,17 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
+        <CommandLineParams Value="&quot;I:\Dokumente und Einstellungen\Andreas\Eigene Dateien\Eigene Videos\bick_buck_bunny_low_res.ogg&quot;"/>
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <Units Count="2">
+    <Units Count="3">
       <Unit0>
         <Filename Value="acinerella_demo.dpr"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="acinerella_demo"/>
-        <CursorPos X="18" Y="10"/>
-        <TopLine Value="1"/>
+        <CursorPos X="33" Y="184"/>
+        <TopLine Value="73"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="22"/>
         <Loaded Value="True"/>
@@ -40,14 +41,22 @@
       <Unit1>
         <Filename Value="..\acinerella.pas"/>
         <UnitName Value="acinerella"/>
-        <CursorPos X="82" Y="112"/>
-        <TopLine Value="96"/>
-        <EditorIndex Value="1"/>
+        <CursorPos X="12" Y="124"/>
+        <TopLine Value="97"/>
+        <EditorIndex Value="2"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit1>
+      <Unit2>
+        <Filename Value="..\..\..\..\..\..\..\..\..\Programme\Lazarus\lcl\include\application.inc"/>
+        <CursorPos X="1" Y="345"/>
+        <TopLine Value="300"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit2>
     </Units>
-    <JumpHistory Count="3" HistoryIndex="2">
+    <JumpHistory Count="20" HistoryIndex="19">
       <Position1>
         <Filename Value="acinerella_demo.dpr"/>
         <Caret Line="34" Column="9" TopLine="14"/>
@@ -60,19 +69,89 @@
         <Filename Value="acinerella_demo.dpr"/>
         <Caret Line="3" Column="1" TopLine="1"/>
       </Position3>
+      <Position4>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="27" Column="34" TopLine="1"/>
+      </Position4>
+      <Position5>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="43" Column="3" TopLine="22"/>
+      </Position5>
+      <Position6>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="7" Column="8" TopLine="1"/>
+      </Position6>
+      <Position7>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="168" Column="46" TopLine="143"/>
+      </Position7>
+      <Position8>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="10" Column="80" TopLine="1"/>
+      </Position8>
+      <Position9>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="81" Column="1" TopLine="60"/>
+      </Position9>
+      <Position10>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="82" Column="1" TopLine="61"/>
+      </Position10>
+      <Position11>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="83" Column="1" TopLine="62"/>
+      </Position11>
+      <Position12>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="86" Column="1" TopLine="65"/>
+      </Position12>
+      <Position13>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="87" Column="1" TopLine="66"/>
+      </Position13>
+      <Position14>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="88" Column="1" TopLine="67"/>
+      </Position14>
+      <Position15>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="86" Column="1" TopLine="65"/>
+      </Position15>
+      <Position16>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="126" Column="89" TopLine="89"/>
+      </Position16>
+      <Position17>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="98" Column="37" TopLine="77"/>
+      </Position17>
+      <Position18>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="176" Column="1" TopLine="144"/>
+      </Position18>
+      <Position19>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="175" Column="1" TopLine="154"/>
+      </Position19>
+      <Position20>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="179" Column="1" TopLine="158"/>
+      </Position20>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="5"/>
+    <Version Value="8"/>
     <PathDelim Value="\"/>
     <SearchPaths>
       <Libraries Value="..\..\..\bin\"/>
       <OtherUnitFiles Value="..\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\packager\units\$(TargetCPU)-$(TargetOS)\"/>
       <UnitOutputDirectory Value="..\..\..\bin"/>
     </SearchPaths>
-    <CodeGeneration>
-      <Generate Value="Faster"/>
-    </CodeGeneration>
+    <Parsing>
+      <SyntaxOptions>
+        <CStyleOperator Value="False"/>
+      </SyntaxOptions>
+    </Parsing>
     <Other>
       <CompilerPath Value="$(CompPath)"/>
     </Other>

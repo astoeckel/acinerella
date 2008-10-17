@@ -3,8 +3,10 @@ acinerella: acinerella.c acinerella.h
 
 ifeq ($(OS_ARCH),UNIX)
 	gcc -shared -o libacinerella.so acinerella.o -lavformat -lavcodec -lavutil -lm -lswscale
+	strip libacinerella.so
 else
 	gcc -shared -o acinerella.dll acinerella.o -lavformat -lavcodec -lavutil -lm -lswscale -lws2_32
+	strip acinerella.dll
 endif
 
 test: test.c acinerella.h

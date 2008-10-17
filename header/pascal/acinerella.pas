@@ -106,19 +106,20 @@ type
     frames_per_second: double;
   end;
 
+  {Contains additional info about the video stream. Use "video_info" when the stream
+     is an video stream, "audio_info" when the stream is an audio stream.}
+  TAd_additional_info = record
+    case byte of
+      0: (video_info: TAc_video_stream_info);
+      1: (audio_info: TAc_audio_stream_info);
+  end;
+
   {Contains information about an Acinerella stream.}
   TAc_stream_info = record
     {Contains the type of the stream.}
     stream_type: TAc_stream_type;
-    {Additional info about the stream - use "video_info" when the stream
-     is an video stream, "audio_info" when the stream is an audio stream.}
-    {$IFNDEF VER160}
-    case additional_info: byte of
-    {$ELSE}
-    case byte of
-    {$ENDIF}
-      0: (video_info: TAc_video_stream_info);
-      1: (audio_info: TAc_audio_stream_info);
+    {Additional info about the stream}
+    additional_info: TAd_additional_info;
   end;
   {Pointer on TAc_stream_info}
   PAc_stream_info = ^TAc_stream_info;
@@ -164,6 +165,9 @@ type
    the number of bytes read or an value smaller than zero if an error occured.}
   TAc_read_callback = function(sender: Pointer; buf: PByte; size: integer): integer; cdecl;
 
+  {Callback function used to ask the application to seek. return 0 if succeed , -1 on failure.}
+  TAc_seek_callback = function(sender: Pointer; pos: int64; whence: integer): int64; cdecl;
+
   {Callback function that is used to notify the application when the data stream
    is opened or closed. For example the file pointer should be resetted to zero
    when the "open" function is called.}
@@ -187,6 +191,7 @@ function ac_open(
   sender: Pointer;
   open_proc: TAc_openclose_callback;
   read_proc: TAc_read_callback;
+  seek_proc: TAc_seek_callback;
   close_proc: TAc_openclose_callback): integer; cdecl; external ac_dll;
 
 {Closes an opened media file.}

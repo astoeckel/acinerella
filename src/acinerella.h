@@ -166,6 +166,8 @@ typedef ac_package* lp_ac_package;
 /*Callback function used to ask the application to read data. Should return
    the number of bytes read or an value smaller than zero if an error occured.*/
 typedef int CALL_CONVT (*ac_read_callback)(void *sender, char *buf, int size);
+/*Callback function used to ask the application to seek. return 0 if succeed , -1 on failure.*/
+typedef int64_t CALL_CONVT (*ac_seek_callback)(void *sender, int64_t pos, int whence);
 /*Callback function that is used to notify the application when the data stream
    is opened or closed. For example the file pointer should be resetted to zero
    when the "open" function is called.*/
@@ -188,13 +190,16 @@ extern void CALL_CONVT ac_free(lp_ac_instance pacInstance);
   allow you to do object orientated programming. May be NULL.)
  @param(open_proc specifies the callback function that is called, when the
   media file is opened. May be NULL.)
+ @param(seek_proc specifies the callback function that is called, when the ffmpeg decoder
+  wants to seek in the file. May be NULL)
  @param(close_proc specifies the callback function that is called when the media
   file is closed. May be NULL.)*/
 extern int CALL_CONVT ac_open(
   lp_ac_instance pacInstance,
   void *sender, 
   ac_openclose_callback open_proc,
-  ac_read_callback read_proc,  
+  ac_read_callback read_proc,
+  ac_seek_callback seek_proc,
   ac_openclose_callback close_proc);
 /*Closes an opened media file.*/
 extern void CALL_CONVT ac_close(lp_ac_instance pacInstance);

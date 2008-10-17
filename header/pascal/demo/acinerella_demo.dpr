@@ -2,8 +2,12 @@ program acinerella_demo;
 
 {$APPTYPE CONSOLE}
 
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
 uses
-  Windows, Forms, Graphics, Classes, SysUtils, acinerella, SyncObjs;
+  {$IFDEF FPC}Interfaces,{$ENDIF}Windows, Forms, Graphics, Classes, SysUtils, acinerella;
 
 type
   TWAVHdr = packed Record
@@ -39,8 +43,14 @@ begin
   result := fs.Read(buf^, size);
 end;
 
+function seek_proc(sender: Pointer; pos: int64; whence: integer): integer; cdecl;
 begin
-  ReportMemoryLeaksOnShutdown := true;
+  fs.Position := pos;
+  result := 0;
+end;
+
+begin
+//  ReportMemoryLeaksOnShutdown := true;
 
   videodecoder := nil;
   audiodecoder := nil;
@@ -68,7 +78,7 @@ begin
   Writeln;
 
   inst := ac_init();
-  ac_open(inst, nil, nil, @read_proc, nil);
+  ac_open(inst, nil, nil, @read_proc, @seek_proc, nil);
 
   Writeln('Count of Datastreams: ', inst^.stream_count);
   for i := 0 to inst^.stream_count - 1 do
@@ -82,16 +92,16 @@ begin
         Writeln('Stream is an audio stream.');
         Writeln('--------------------------');
         Writeln;
-        Writeln(' * Samples per Second: ', info.audio_info.samples_per_second);
-        Writeln(' * Channel count     : ', info.audio_info.channel_count);
-        Writeln(' * Bit depth         : ', info.audio_info.bit_depth);
+        Writeln(' * Samples per Second: ', info.additional_info.audio_info.samples_per_second);
+        Writeln(' * Channel count     : ', info.additional_info.audio_info.channel_count);
+        Writeln(' * Bit depth         : ', info.additional_info.audio_info.bit_depth);
 
         if audiodecoder = nil then
         begin
           audiodecoder := ac_create_decoder(inst, i);
           wave := TFileStream.Create(ExtractFilePath(ParamStr(0))+'out.wav', fmCreate);
 
-          with info.audio_info do
+          with info.additional_info.audio_info do
           begin
             wave_hdr.riff := 'RIFF';
             wave_hdr.len := 36;
@@ -116,18 +126,18 @@ begin
         Writeln('Stream is an video stream.');
         Writeln('--------------------------');
         Writeln;
-        Writeln(' * Width             : ', info.video_info.frame_width, 'px');
-        Writeln(' * Height            : ', info.video_info.frame_height, 'px');
-        Writeln(' * Pixel aspect      : ', FormatFloat('#.##', info.video_info.pixel_aspect));
-        Writeln(' * Frames per second : ', FormatFloat('#.##', 1 / info.video_info.frames_per_second));
+        Writeln(' * Width             : ', info.additional_info.video_info.frame_width, 'px');
+        Writeln(' * Height            : ', info.additional_info.video_info.frame_height, 'px');
+        Writeln(' * Pixel aspect      : ', FormatFloat('#.##', info.additional_info.video_info.pixel_aspect));
+        Writeln(' * Frames per second : ', FormatFloat('#.##', 1 / info.additional_info.video_info.frames_per_second));
 
         if videodecoder = nil then
         begin
           videodecoder := ac_create_decoder(inst, i);
-          bmp.Height := videodecoder^.stream_info.video_info.frame_height;
-          bmp.Width := videodecoder^.stream_info.video_info.frame_width;
+          bmp.Height := videodecoder^.stream_info.additional_info.video_info.frame_height;
+          bmp.Width := videodecoder^.stream_info.additional_info.video_info.frame_width;
           frm.ClientWidth :=
-            round(bmp.Width * videodecoder^.stream_info.video_info.pixel_aspect);
+            round(bmp.Width * videodecoder^.stream_info.additional_info.video_info.pixel_aspect);
           frm.ClientHeight := bmp.Height;
           frm.Show;
         end;
@@ -157,9 +167,11 @@ begin
           //This demo uses the GDI to draw the video data - this is a very simple
           //way but produces a very bad quality. You should use a video overlay or
           //OpenGL/Direct3D to draw your video data.
+          {$IFNDEF FPC}
           Move(videodecoder^.buffer^, bmp.Scanline[bmp.Height-1]^, videodecoder^.buffer_size);
           StretchBlt(frm.Canvas.Handle, 0, frm.Height, frm.Width, -frm.Height, bmp.Canvas.Handle,
             0, 0, bmp.Width, bmp.Height, SRCCOPY);
+          {$ENDIF}
         end;
       end;
       if (audiodecoder <> nil) and (audiodecoder^.stream_index = pack^.stream_index) then
