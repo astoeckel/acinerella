@@ -304,8 +304,8 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb, lp_ac_str
       }
       
     info->additional_info.video_info.frames_per_second =
-      (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.num /
-      (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.den ;
+      (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.den /
+      (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.num;
     break;
     case CODEC_TYPE_AUDIO:
       //Set stream type to "AUDIO"
