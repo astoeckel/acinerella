@@ -34,6 +34,13 @@ int CALL_CONVT read_callback(void *sender, char *buf, int size) {
   return read(source, buf, size);
 }
 
+int64_t CALL_CONVT seek_callback(void *sender, int64_t pos, int whence) {
+  printf("Seek Whence: %d Pos: %d \n", whence, pos);
+  int64_t res = lseek(source, pos, whence);
+  printf("%d \n", res);
+  return res;
+}
+
 int CALL_CONVT open_callback(void *sender) {
   source = open(filename, O_RDONLY | O_BINARY);  
   printf("Open '%s' \n", filename);
@@ -88,7 +95,7 @@ int main(int argc, char *argv[]) {
   
   //Open the video/audio file by passing the function pointers to the open, read and close callbacks to Acinerella.
   //Only the read callback is neccessary, all other callbacks may be 0
-  ac_open(pData, 0, &open_callback, &read_callback, NULL, &close_callback);
+  ac_open(pData, 0, &open_callback, &read_callback, &seek_callback, &close_callback);
   
   //Display the count of the found data streams.
   printf("Count of Datastreams:  %d \n", pData->stream_count);
@@ -148,7 +155,7 @@ int main(int argc, char *argv[]) {
       printf("Found packet for stream %d. \r", pckt->stream_index);
       
       if ((pVideoDecoder != NULL) && (pckt->stream_index == pVideoDecoder->stream_index)) {
-        //The packet is for the video stream, try the decode it
+        //The packet is for the video stream, try to decode it
         if (ac_decode_package(pckt, pVideoDecoder)) {
           //Save every 100th video frame to a ppm file
           if (framenb % 100 == 0) {

@@ -26,7 +26,11 @@ unit acinerella;
 interface
 
 {$MINENUMSIZE 1}
-{$ALIGN 8}
+{$IFDEF WIN32}
+  {$ALIGN 8}
+{$ELSE}
+  {$ALIGN 4}
+{$ENDIF}
 
 const
   {$IFDEF WIN32}

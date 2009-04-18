@@ -583,7 +583,7 @@ int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
 
 //Free video decoder
 void ac_free_video_decoder(lp_ac_video_decoder pDecoder) {
-  av_free(pDecoder->decoder.pBuffer);  
+//  av_free(pDecoder->decoder.pBuffer);  
   av_free(pDecoder->pFrame);
   av_free(pDecoder->pFrameRGB);    
   if (pDecoder->pSwsCtx != NULL) {
@@ -601,7 +601,7 @@ void ac_free_video_decoder(lp_ac_video_decoder pDecoder) {
 
 //Free video decoder
 void ac_free_audio_decoder(lp_ac_audio_decoder pDecoder) {
-  av_free(pDecoder->decoder.pBuffer);
+//  av_free(pDecoder->decoder.pBuffer);
   avcodec_close(pDecoder->pCodecCtx);
   
   //Free reserved memory for the buffer
