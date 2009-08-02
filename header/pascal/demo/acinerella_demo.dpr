@@ -43,10 +43,12 @@ begin
   result := fs.Read(buf^, size);
 end;
 
-function seek_proc(sender: Pointer; pos: int64; whence: integer): integer; cdecl;
+function seek_proc(sender: Pointer; pos: int64; whence: integer): int64; cdecl;
 begin
-  fs.Position := pos;
-  result := 0;
+  if whence in [0, 1, 2] then
+    result := fs.Seek(pos, TSeekOrigin(whence))
+  else
+    result := -1;
 end;
 
 begin
@@ -81,6 +83,11 @@ begin
   ac_open(inst, nil, nil, @read_proc, @seek_proc, nil);
 
   Writeln('Count of Datastreams: ', inst^.stream_count);
+  Writeln('Length of the file: ', inst^.info.duration);
+  Writeln('Title: ', PChar(@(inst^.info.title[0])));
+  Writeln('Author: ', PChar(@(inst^.info.author[0])));
+  Writeln('Album: ', PChar(@(inst^.info.album[0])));
+  Writeln('Genre: ', PChar(@(inst^.info.genre[0])));
   for i := 0 to inst^.stream_count - 1 do
   begin
     Writeln;

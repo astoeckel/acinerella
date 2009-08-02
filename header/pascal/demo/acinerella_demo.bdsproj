@@ -130,7 +130,7 @@
 			<Directories Name="UsePackages">False</Directories>
 		</Directories>
 		<Parameters>
-			<Parameters Name="RunParams">"C:\Dokumente und Einstellungen\Andreas\Eigene Dateien\Eigene Videos\Iteration.mpg"</Parameters>
+			<Parameters Name="RunParams">C:\source\acinerella\test.ogg</Parameters>
 			<Parameters Name="HostApplication"></Parameters>
 			<Parameters Name="Launcher"></Parameters>
 			<Parameters Name="UseLauncher">False</Parameters>

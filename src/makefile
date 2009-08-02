@@ -1,7 +1,7 @@
 acinerella: acinerella.c acinerella.h
 	gcc -c -fPIC acinerella.c
 
-ifeq ($(OS_ARCH),UNIX)
+ifeq "$(OSTYPE)" "linux"
 	gcc -shared -o libacinerella.so acinerella.o -lavformat -lavcodec -lavutil -lm -lswscale
 	strip libacinerella.so
 else

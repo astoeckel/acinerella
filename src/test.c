@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
   int audiofile;
   
   //Open a file for raw audio output
-  audiofile = open("test.raw", O_WRONLY | O_CREAT | O_BINARY);
+  audiofile = open("acin_test.raw", O_WRONLY | O_CREAT | O_BINARY);
   
   //Save the filename of the file that should be opened in a string
   filename = argv[1];
@@ -100,6 +100,13 @@ int main(int argc, char *argv[]) {
   //Display the count of the found data streams.
   printf("Count of Datastreams:  %d \n", pData->stream_count);
   
+  //Print file info
+  printf("File duration: %d \n", pData->info.duration);
+  printf("Title: %s \n", pData->info.title);
+  printf("Author: %s \n", pData->info.author);
+  printf("Album: %s \n", pData->info.album);
+
+  
   //Go through every stream and fetch information about it.
   for (i = pData->stream_count - 1; i >= 0; --i) {
     printf("\nInformation about stream %d: \n", i);
@@ -107,8 +114,8 @@ int main(int argc, char *argv[]) {
     ac_stream_info info;
     
     //Get information about stream no. i
-    ac_get_stream_info(pData, i, &info);    
-    
+    ac_get_stream_info(pData, i, &info);       
+   
     switch (info.stream_type) {
       //Stream is a video stream - display information about it
       case AC_STREAM_TYPE_VIDEO:

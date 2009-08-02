@@ -65,6 +65,29 @@ enum _ac_output_format {
 
 typedef enum _ac_output_format ac_output_format;
 
+/*Contains information about the whole file/stream that has been opened. Default values are "" 
+for strings and -1 for integer values.*/
+struct _ac_file_info { 
+  /*Information about the file*/
+  char title[512];
+  char author[512];
+  char copyright[512];
+  char comment[512];
+  char album[512];
+  int year;
+  int track;
+  char genre[32]; 
+  
+  /*Length of the file*/
+  int64_t duration;  
+ 
+  /*Bitrate*/
+  int bitrate;
+};
+
+typedef struct _ac_file_info ac_file_info;
+typedef ac_file_info* lp_ac_file_info;
+
 /*TAc_instance represents an Acinerella instance. Each instance can open and
  decode one file at once. There can be only 26 Acinerella instances opened at
  once.*/
@@ -76,6 +99,8 @@ struct _ac_instance {
   int stream_count;  
   /*Set this value to change the image output format */
   ac_output_format output_format;
+  /*Contains information about the opened stream/file*/
+  ac_file_info info;  
 };
 
 typedef struct _ac_instance ac_instance;
@@ -131,7 +156,7 @@ struct _ac_decoder {
   
   /*The timecode of the currently decoded picture in seconds */
   double timecode;
-  
+
   /*Contains information about the stream the decoder is attached to.*/
   ac_stream_info stream_info;
   /*The index of the stream the decoder is attached to.*/
@@ -140,7 +165,7 @@ struct _ac_decoder {
   /*Pointer to the buffer which contains the data.*/
   char *pBuffer;  
   /*Size of the data in the buffer.*/  
-  int buffer_size;
+  int buffer_size;  
 };
 
 typedef struct _ac_decoder ac_decoder;
@@ -220,5 +245,11 @@ extern void CALL_CONVT ac_free_decoder(lp_ac_decoder pDecoder);
 /*Decodes a package using the specified decoder. The decodec data is stored in the
  "buffer" property of the decoder.*/
 extern int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder);
+
+/*Seeks to the given target position in the file. The seek funtion is not able to seek a single audio/video stream
+but seeks the whole file forward. The stream number paremter (nb) is only used for the timecode reference.
+The parameter "dir" specifies the seek direction: 0 for forward, -1 for backward.
+The target_pos paremeter is in milliseconds. Returns 1 if the functions succeded.*/
+extern int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos);
 
 #endif /*VIDEOPLAY_H*/

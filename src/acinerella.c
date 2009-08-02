@@ -16,6 +16,7 @@
 */
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include "acinerella.h"
 #include <libavformat/avformat.h>
 #include <libavformat/avio.h>
@@ -46,8 +47,19 @@ struct _ac_data {
 typedef struct _ac_data ac_data;
 typedef ac_data* lp_ac_data;
 
+struct _ac_decoder_data {
+  ac_decoder decoder;
+  int sought;
+  double last_timecode;
+};
+
+typedef struct _ac_decoder_data ac_decoder_data;
+typedef ac_decoder_data* lp_ac_decoder_data;
+
 struct _ac_video_decoder {
   ac_decoder decoder;
+  int sought;
+  double last_timecode;
   AVCodec *pCodec;
   AVCodecContext *pCodecCtx;
   AVFrame *pFrame;
@@ -60,6 +72,8 @@ typedef ac_video_decoder* lp_ac_video_decoder;
 
 struct _ac_audio_decoder {
   ac_decoder decoder;
+  int sought;
+  double last_timecode;
   int max_buffer_size;
   AVCodec *pCodec;
   AVCodecContext *pCodecCtx;
@@ -120,8 +134,9 @@ void unique_protocol_name(char *name) {
         return;
       }    
       //We got an element from the list, compare its name to our string. If they are the same,
-      //The string isn't unique and we have to create a new one.
+      //the string isn't unique and we have to create a new one.
       if (strcmp(p->name, name) == 0) {
+        p = first_protocol;
         break;
       }
       p = p->next;
@@ -148,6 +163,19 @@ void CALL_CONVT ac_mem_mgr(ac_malloc_callback mc, ac_realloc_callback rc, ac_fre
 //--- Initialization and Stream opening---
 //
 
+void init_info(lp_ac_file_info info) {
+  info->title[0] = 0;
+  info->author[0] = 0;
+  info->copyright[0] = 0;
+  info->comment[0] = 0;
+  info->album[0] = 0;
+  info->year = -1;
+  info->track = -1;
+  info->genre[0] = 0;
+  info->duration = -1;
+  info->bitrate = -1;
+}
+
 lp_ac_instance CALL_CONVT ac_init(void) {
   //Initialize FFMpeg libraries
   av_register_all();
@@ -158,6 +186,7 @@ lp_ac_instance CALL_CONVT ac_init(void) {
   ptmp->instance.opened = 0;
   ptmp->instance.stream_count = 0;
   ptmp->instance.output_format = AC_OUTPUT_BGR24;
+  init_info(&(ptmp->instance.info));
   return (lp_ac_instance)ptmp;  
 }
 
@@ -199,9 +228,11 @@ static int file_read(URLContext *h, unsigned char *buf, int size)
 
 int64_t file_seek(URLContext *h, int64_t pos, int whence)
 {
-  if (((lp_ac_data)(h->priv_data))->seek_proc != NULL) {
-    return ((lp_ac_data)(h->priv_data))->seek_proc(((lp_ac_data)(h->priv_data))->sender, pos, whence);
-  } 
+  if ((whence >= 0) && (whence <= 2)) {
+    if (((lp_ac_data)(h->priv_data))->seek_proc != NULL) {
+      return ((lp_ac_data)(h->priv_data))->seek_proc(((lp_ac_data)(h->priv_data))->sender, pos, whence);
+    } 
+  }
 
   return -1;
 }
@@ -272,6 +303,23 @@ int CALL_CONVT ac_open(
   //Set some information in the instance variable 
   pacInstance->stream_count = ((lp_ac_data)pacInstance)->pFormatCtx->nb_streams;
   pacInstance->opened = pacInstance->stream_count > 0;  
+  
+  //Try to obtain even more stream information (duration, author, album etc.)
+  if (av_find_stream_info(((lp_ac_data)pacInstance)->pFormatCtx) >= 0) {
+    AVFormatContext *ctx = ((lp_ac_data)pacInstance)->pFormatCtx;
+    strcpy(pacInstance->info.title, ctx->title);
+    strcpy(pacInstance->info.author, ctx->author);
+    strcpy(pacInstance->info.copyright, ctx->copyright);
+    strcpy(pacInstance->info.comment, ctx->comment);
+    strcpy(pacInstance->info.album, ctx->album);
+    strcpy(pacInstance->info.genre, ctx->genre);    
+
+    pacInstance->info.year = ctx->year;
+    pacInstance->info.track = ctx->track;
+    pacInstance->info.bitrate = ctx->bit_rate;     
+   
+    pacInstance->info.duration = ctx->duration * 1000 / AV_TIME_BASE;    
+  }  
 }
 
 void CALL_CONVT ac_close(lp_ac_instance pacInstance) {
@@ -487,14 +535,19 @@ lp_ac_decoder CALL_CONVT ac_create_decoder(lp_ac_instance pacInstance, int nb) {
   ac_stream_info info;
   ac_get_stream_info(pacInstance, nb, &info);
   
+  lp_ac_decoder result;
+  
   if (info.stream_type == AC_STREAM_TYPE_VIDEO) {
-    return ac_create_video_decoder(pacInstance, &info, nb);
+    result = ac_create_video_decoder(pacInstance, &info, nb);
   } 
   else if (info.stream_type == AC_STREAM_TYPE_AUDIO) {
-    return ac_create_audio_decoder(pacInstance, &info, nb);  
+    result = ac_create_audio_decoder(pacInstance, &info, nb);  
   }
   
-  return NULL;
+  ((lp_ac_decoder_data)result)->last_timecode = 0;
+  ((lp_ac_decoder_data)result)->sought = 1;
+  
+  return result;
 }
 
 int ac_decode_video_package(lp_ac_package pPackage, lp_ac_video_decoder pDecoder) {
@@ -571,7 +624,34 @@ int ac_decode_audio_package(lp_ac_package pPackage, lp_ac_audio_decoder pDecoder
 int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder) {
   double timebase = 
     av_q2d(((lp_ac_data)pDecoder->pacInstance)->pFormatCtx->streams[pPackage->stream_index]->time_base);
-  pDecoder->timecode = ((lp_ac_package_data)pPackage)->pts * timebase;
+  
+  //Create a valid timecode
+  if (((lp_ac_package_data)pPackage)->pts > 0) {
+    lp_ac_decoder_data dec_dat = (lp_ac_decoder_data)pDecoder;    
+
+    dec_dat->last_timecode = pDecoder->timecode;
+    pDecoder->timecode = ((lp_ac_package_data)pPackage)->pts * timebase;
+    
+    double delta = pDecoder->timecode - dec_dat->last_timecode;
+    double max_delta, min_delta;
+    
+    if (dec_dat->sought > 0) {
+      max_delta = 120.0;
+      min_delta = -120.0;
+      --dec_dat->sought;
+    } else {
+      max_delta = 4.0;
+      min_delta = 0.0;
+    }
+      
+    if ((delta < min_delta) || (delta > max_delta)) {
+      pDecoder->timecode = dec_dat->last_timecode;
+      if (dec_dat->sought > 0) {
+        ++dec_dat->sought;
+      }
+    }
+  }
+  
   if (pDecoder->type == AC_DECODER_TYPE_VIDEO) {
     return ac_decode_video_package(pPackage, (lp_ac_video_decoder)pDecoder);
   } 
@@ -579,6 +659,26 @@ int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
     return ac_decode_audio_package(pPackage, (lp_ac_audio_decoder)pDecoder);  
   }
   return 0;
+}
+
+//Seek function
+int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos) {
+  AVRational timebase = 
+    ((lp_ac_data)pDecoder->pacInstance)->pFormatCtx->streams[pDecoder->stream_index]->time_base;
+  
+  int flags = dir < 0 ? AVSEEK_FLAG_BACKWARD : 0;    
+  
+  int64_t pos = av_rescale(target_pos, AV_TIME_BASE, 1000);
+  
+  ((lp_ac_decoder_data)pDecoder)->sought = 100;
+  pDecoder->timecode = target_pos / 1000;
+  
+  if (av_seek_frame(((lp_ac_data)pDecoder->pacInstance)->pFormatCtx, pDecoder->stream_index, 
+      av_rescale_q(pos, AV_TIME_BASE_Q, timebase), flags) >= 0) {
+    return 1;
+  }
+  
+  return 0;  
 }
 
 //Free video decoder

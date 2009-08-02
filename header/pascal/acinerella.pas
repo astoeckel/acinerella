@@ -72,6 +72,24 @@ type
     AC_OUTPUT_RGBA32 = 2,
     AC_OUTPUT_BGRA32 = 3
   );
+  
+  TAc_infostr = array[0..511] of Char;
+  TAc_infostr2 = array[0..31] of Char;
+
+  {Contains information about the whole file/stream that has been opened. Default 
+   values are "" for strings and -1 for integer values.}
+  TAc_file_info = record
+    title: TAc_infostr;
+    author: TAc_infostr;
+    copyright: TAc_infostr;
+    comment: TAc_infostr;
+    album: TAc_infostr;
+    year: integer;
+    track: integer;
+    genre: TAc_infostr2;
+    duration: int64;
+    bitrate: integer;
+  end;
 
   {TAc_instance represents an Acinerella instance. Each instance can open and
    decode one file at once. There can be only 26 Acinerella instances opened at
@@ -84,6 +102,8 @@ type
     stream_count: integer;
     {Set this value to change the image output format}
     output_format: TAc_output_format;
+    {Contains information about the opened stream/file}
+    info: TAc_file_info;
   end;         
   {Pointer on the Acinerella instance record.}
   PAc_instance = ^TAc_instance;
@@ -218,6 +238,12 @@ procedure ac_free_decoder(pDecoder: PAc_decoder); cdecl; external ac_dll;
 {Decodes a package using the specified decoder. The decodec data is stored in the
  "buffer" property of the decoder.}
 function ac_decode_package(pPackage: PAc_package; pDecoder: PAc_decoder): integer; cdecl; external ac_dll;
+
+{Seeks to the given target position in the file. The seek funtion is not able to seek a single audio/video stream
+but seeks the whole file forward. The deocder parameter is only used as an timecode reference.
+The parameter "dir" specifies the seek direction: 0 for forward, -1 for backward.
+The target_pos paremeter is in milliseconds. Returns 1 if the functions succeded.}
+function ac_seek(pDecoder: PAc_decoder; dir: integer; target_pos: int64): integer; cdecl; external ac_dll;
 
 
 implementation
