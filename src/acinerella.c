@@ -50,6 +50,7 @@ typedef ac_data* lp_ac_data;
 struct _ac_decoder_data {
   ac_decoder decoder;
   int sought;
+  int time_gaps;  
   double last_timecode;
 };
 
@@ -59,6 +60,7 @@ typedef ac_decoder_data* lp_ac_decoder_data;
 struct _ac_video_decoder {
   ac_decoder decoder;
   int sought;
+  int time_gaps;  
   double last_timecode;
   AVCodec *pCodec;
   AVCodecContext *pCodecCtx;
@@ -73,6 +75,7 @@ typedef ac_video_decoder* lp_ac_video_decoder;
 struct _ac_audio_decoder {
   ac_decoder decoder;
   int sought;
+  int time_gaps;
   double last_timecode;
   int max_buffer_size;
   AVCodec *pCodec;
@@ -296,16 +299,7 @@ int CALL_CONVT ac_open(
   }
  
   //Retrieve stream information
-  if(av_find_stream_info(((lp_ac_data)pacInstance)->pFormatCtx)<0) {
-    return -1;
-  }
-  
-  //Set some information in the instance variable 
-  pacInstance->stream_count = ((lp_ac_data)pacInstance)->pFormatCtx->nb_streams;
-  pacInstance->opened = pacInstance->stream_count > 0;  
-  
-  //Try to obtain even more stream information (duration, author, album etc.)
-  if (av_find_stream_info(((lp_ac_data)pacInstance)->pFormatCtx) >= 0) {
+  if(av_find_stream_info(((lp_ac_data)pacInstance)->pFormatCtx)>=0) {
     AVFormatContext *ctx = ((lp_ac_data)pacInstance)->pFormatCtx;
     strcpy(pacInstance->info.title, ctx->title);
     strcpy(pacInstance->info.author, ctx->author);
@@ -319,7 +313,13 @@ int CALL_CONVT ac_open(
     pacInstance->info.bitrate = ctx->bit_rate;     
    
     pacInstance->info.duration = ctx->duration * 1000 / AV_TIME_BASE;    
-  }  
+  } else {
+    return -1;
+  }
+  
+  //Set some information in the instance variable 
+  pacInstance->stream_count = ((lp_ac_data)pacInstance)->pFormatCtx->nb_streams;
+  pacInstance->opened = pacInstance->stream_count > 0;  
 }
 
 void CALL_CONVT ac_close(lp_ac_instance pacInstance) {
@@ -544,8 +544,10 @@ lp_ac_decoder CALL_CONVT ac_create_decoder(lp_ac_instance pacInstance, int nb) {
     result = ac_create_audio_decoder(pacInstance, &info, nb);  
   }
   
+  result->timecode = 0;
   ((lp_ac_decoder_data)result)->last_timecode = 0;
   ((lp_ac_decoder_data)result)->sought = 1;
+  ((lp_ac_decoder_data)result)->time_gaps = 0;
   
   return result;
 }
@@ -624,7 +626,7 @@ int ac_decode_audio_package(lp_ac_package pPackage, lp_ac_audio_decoder pDecoder
 int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder) {
   double timebase = 
     av_q2d(((lp_ac_data)pDecoder->pacInstance)->pFormatCtx->streams[pPackage->stream_index]->time_base);
-  
+    
   //Create a valid timecode
   if (((lp_ac_package_data)pPackage)->pts > 0) {
     lp_ac_decoder_data dec_dat = (lp_ac_decoder_data)pDecoder;    
@@ -642,13 +644,17 @@ int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
     } else {
       max_delta = 4.0;
       min_delta = 0.0;
-    }
-      
-    if ((delta < min_delta) || (delta > max_delta)) {
+    }    
+    
+    if (((delta < min_delta) || (delta > max_delta)) && (dec_dat->time_gaps < 50)) {
       pDecoder->timecode = dec_dat->last_timecode;
       if (dec_dat->sought > 0) {
         ++dec_dat->sought;
+      } else {
+        ++dec_dat->time_gaps;
       }
+    } else {
+      dec_dat->time_gaps = 0;
     }
   }
   
