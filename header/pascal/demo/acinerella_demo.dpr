@@ -37,23 +37,25 @@ var
   frm: TForm;
   bmp: TBitmap;
   fs: TFileStream;
+  read_cnt: integer;
 
 function read_proc(sender: Pointer; buf: PChar; size: integer): integer; cdecl;
 begin
+  inc(read_cnt);
   result := fs.Read(buf^, size);
 end;
 
 function seek_proc(sender: Pointer; pos: int64; whence: integer): int64; cdecl;
 begin
-  if whence in [0, 1, 2] then
+  Writeln('Seeking to pos ', pos, ' from ', whence);
+  if (whence = 0) or (whence = 1) then
     result := fs.Seek(pos, TSeekOrigin(whence))
   else
     result := -1;
+  Writeln(result);
 end;
 
 begin
-//  ReportMemoryLeaksOnShutdown := true;
-
   videodecoder := nil;
   audiodecoder := nil;
   wave := nil;
@@ -136,7 +138,7 @@ begin
         Writeln(' * Width             : ', info.additional_info.video_info.frame_width, 'px');
         Writeln(' * Height            : ', info.additional_info.video_info.frame_height, 'px');
         Writeln(' * Pixel aspect      : ', FormatFloat('#.##', info.additional_info.video_info.pixel_aspect));
-        Writeln(' * Frames per second : ', FormatFloat('#.##', 1 / info.additional_info.video_info.frames_per_second));
+        Writeln(' * Frames per second : ', FormatFloat('#.##', info.additional_info.video_info.frames_per_second));
 
         if videodecoder = nil then
         begin
@@ -182,12 +184,8 @@ begin
         end;
       end;
       if (audiodecoder <> nil) and (audiodecoder^.stream_index = pack^.stream_index) then
-      begin
         if (ac_decode_package(pack, audiodecoder) > 0) then
-        begin
           wave.Write(audiodecoder^.buffer^, audiodecoder^.buffer_size);
-        end;
-      end;
 
       ac_free_package(pack);
     end;
@@ -214,9 +212,10 @@ begin
     wave.Write(wave_hdr, sizeof(wave_hdr));
 
     wave.Free;
-  end;
-
+  end;      
 
   frm.Free;
-  bmp.Free;     
+  bmp.Free;
+
+  readln;
 end.

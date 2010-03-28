@@ -29,15 +29,17 @@ by your OS.
 
 char *filename;
 int source;
+int read_cnt = 0;
 
 int CALL_CONVT read_callback(void *sender, char *buf, int size) {
+  read_cnt++;
   return read(source, buf, size);
 }
 
 int64_t CALL_CONVT seek_callback(void *sender, int64_t pos, int whence) {
-  printf("Seek Whence: %d Pos: %d \n", whence, pos);
+  printf("Seek Whence: %d Pos: %ld \n", whence, pos);
   int64_t res = lseek(source, pos, whence);
-  printf("%d \n", res);
+  printf("%ld \n", res);
   return res;
 }
 
@@ -58,7 +60,7 @@ void SaveFrame(char *buffer, int width, int height, int iFrame) {
   int  y;
   
   // Open file
-  sprintf(szFilename, "frame%d.ppm", iFrame);
+  sprintf(szFilename, "img/frame%05d.ppm", iFrame);
   pFile=fopen(szFilename, "wb");
   if(pFile==NULL)
     return;
@@ -106,7 +108,6 @@ int main(int argc, char *argv[]) {
   printf("Author: %s \n", pData->info.author);
   printf("Album: %s \n", pData->info.album);
 
-  
   //Go through every stream and fetch information about it.
   for (i = pData->stream_count - 1; i >= 0; --i) {
     printf("\nInformation about stream %d: \n", i);
@@ -123,7 +124,7 @@ int main(int argc, char *argv[]) {
         printf(" * Width            : %d\n", info.additional_info.video_info.frame_width);
         printf(" * Height           : %d\n", info.additional_info.video_info.frame_height);
         printf(" * Pixel aspect     : %f\n", info.additional_info.video_info.pixel_aspect);
-        printf(" * Frames per second: %lf \n",  1.0 / info.additional_info.video_info.frames_per_second);          
+        printf(" * Frames per second: %lf \n", info.additional_info.video_info.frames_per_second);          
           
         //If we don't have a video decoder now, try to create a video decoder for this video stream
         if (pVideoDecoder == NULL) {
@@ -159,7 +160,7 @@ int main(int argc, char *argv[]) {
   do {
     pckt = ac_read_package(pData);
     if (pckt != NULL) {
-      printf("Found packet for stream %d. \r", pckt->stream_index);
+      printf("Found packet for stream %d.\r", pckt->stream_index);
       
       if ((pVideoDecoder != NULL) && (pckt->stream_index == pVideoDecoder->stream_index)) {
         //The packet is for the video stream, try to decode it

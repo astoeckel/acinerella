@@ -174,12 +174,6 @@ typedef ac_decoder* lp_ac_decoder;
 
 /*Contains information about an Acinerella package.*/
 struct _ac_package {
-  /*The data of the package. This data may not be accessible in other programming languages, because
-     currently FFMpeg doesn't reserve this memory area using the Acinerella
-     memory manager.*/
-  char *data;
-  /*The size of the package data.*/
-  int size;
   /*The stream the package belongs to.*/
   int stream_index;
 };

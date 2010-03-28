@@ -25,10 +25,17 @@
 #include <libswscale/swscale.h>
 #include <string.h>
 
+//!
+//#include <stdio.h>
+
 #define AUDIO_BUFFER_BASE_SIZE ((AVCODEC_MAX_AUDIO_FRAME_SIZE * 3) / 2)
+
 
 //This struct represents one Acinerella video object.
 //It contains data needed by FFMpeg.
+
+#define AC_BUFSIZE 1024*64
+
 struct _ac_data {
   ac_instance instance;
   
@@ -40,8 +47,8 @@ struct _ac_data {
   ac_seek_callback seek_proc; 
   ac_openclose_callback close_proc; 
   
-  URLProtocol protocol;
-  char protocol_name[9];  
+  ByteIOContext io;
+  void* buffer; 
 };
 
 typedef struct _ac_data ac_data;
@@ -50,7 +57,6 @@ typedef ac_data* lp_ac_data;
 struct _ac_decoder_data {
   ac_decoder decoder;
   int sought;
-  int time_gaps;  
   double last_timecode;
 };
 
@@ -60,7 +66,6 @@ typedef ac_decoder_data* lp_ac_decoder_data;
 struct _ac_video_decoder {
   ac_decoder decoder;
   int sought;
-  int time_gaps;  
   double last_timecode;
   AVCodec *pCodec;
   AVCodecContext *pCodecCtx;
@@ -75,7 +80,6 @@ typedef ac_video_decoder* lp_ac_video_decoder;
 struct _ac_audio_decoder {
   ac_decoder decoder;
   int sought;
-  int time_gaps;
   double last_timecode;
   int max_buffer_size;
   AVCodec *pCodec;
@@ -95,60 +99,6 @@ typedef struct _ac_package_data ac_package_data;
 typedef ac_package_data* lp_ac_package_data;
 
 //
-//---Small functions that are missing in FFMpeg ;-) ---
-//
-
-//Deletes a protocol from the FFMpeg protocol list
-void unregister_protocol(URLProtocol *protocol) {
-  URLProtocol *pcurrent = first_protocol;
-  URLProtocol *plast = NULL;	
-  
-  while (pcurrent != NULL) {
-    //Search for the protocol that is given as parameter
-    if (pcurrent == protocol) {
-      if (plast != NULL) {
-        plast->next = pcurrent->next;
-        return;
-      } else {
-        first_protocol = pcurrent->next;
-        return;
-      }
-    }
-    plast = pcurrent;
-    pcurrent = pcurrent->next;
-  }
-}
-
-void unique_protocol_name(char *name) {
-  URLProtocol *p = first_protocol;
-  int i = 0;
-  
-  //Copy the string "acinx" to the string
-  strcpy(name, "acinx");
-  
-  while (1) {
-    //Replace the "x" in the string with a character
-    name[4] = (char)(65 + i);
-    
-    while (1) {   
-      //There is no element in the list or we are at the end of the list. In this case the string
-      //is unique
-      if (p == NULL) {
-        return;
-      }    
-      //We got an element from the list, compare its name to our string. If they are the same,
-      //the string isn't unique and we have to create a new one.
-      if (strcmp(p->name, name) == 0) {
-        p = first_protocol;
-        break;
-      }
-      p = p->next;
-    }    
-    i++;
-  }  
-}
-
-//
 //--- Memory manager ---
 //
 
@@ -156,7 +106,9 @@ ac_malloc_callback mgr_malloc = &malloc;
 ac_realloc_callback mgr_realloc =  &realloc;
 ac_free_callback mgr_free = &free;
 
-void CALL_CONVT ac_mem_mgr(ac_malloc_callback mc, ac_realloc_callback rc, ac_free_callback fc) {
+void CALL_CONVT ac_mem_mgr(ac_malloc_callback mc, ac_realloc_callback rc,
+  ac_free_callback fc)
+{
   mgr_malloc = mc;
   mgr_realloc = rc;
   mgr_free = fc;
@@ -166,7 +118,8 @@ void CALL_CONVT ac_mem_mgr(ac_malloc_callback mc, ac_realloc_callback rc, ac_fre
 //--- Initialization and Stream opening---
 //
 
-void init_info(lp_ac_file_info info) {
+void init_info(lp_ac_file_info info)
+{
   info->title[0] = 0;
   info->author[0] = 0;
   info->copyright[0] = 0;
@@ -181,11 +134,16 @@ void init_info(lp_ac_file_info info) {
 
 lp_ac_instance CALL_CONVT ac_init(void) {
   //Initialize FFMpeg libraries
+  avcodec_register_all();  
   av_register_all();
   
   //Allocate a new instance of the videoplayer data and return it
   lp_ac_data ptmp;  
   ptmp = (lp_ac_data)mgr_malloc(sizeof(ac_data));
+  
+  //Initialize the created structure
+  memset(ptmp, 0, sizeof(ac_data));
+  
   ptmp->instance.opened = 0;
   ptmp->instance.stream_count = 0;
   ptmp->instance.output_format = AC_OUTPUT_BGR24;
@@ -204,50 +162,133 @@ void CALL_CONVT ac_free(lp_ac_instance pacInstance) {
 
 lp_ac_data last_instance;
 
-//Function called by FFMpeg when opening an ac stream.
-static int file_open(URLContext *h, const char *filename, int flags)
+static int io_read(void *opaque, uint8_t *buf, int buf_size)
 {
-  h->priv_data = last_instance;
-  h->is_streamed = last_instance->seek_proc == NULL;
-  
-  if (last_instance->open_proc != NULL) {
-    last_instance->open_proc(last_instance->sender);
-  }
-    
-  return 0;
-}
-
-//Function called by FFMpeg when reading from the stream
-static int file_read(URLContext *h, unsigned char *buf, int size)
-{
-  if (((lp_ac_data)(h->priv_data))->read_proc != NULL) {
-    return ((lp_ac_data)(h->priv_data))->read_proc(((lp_ac_data)(h->priv_data))->sender, buf, size);
+  if (((lp_ac_data)(opaque))->read_proc != NULL) {
+    return ((lp_ac_data)(opaque))->read_proc(
+      ((lp_ac_data)(opaque))->sender, buf, buf_size);
   }
   
-  return -1;
+  return -1;  
 }
 
-//Function called by FFMpeg when seeking the stream
-
-int64_t file_seek(URLContext *h, int64_t pos, int whence)
+static int64_t io_seek(void *opaque, int64_t pos, int whence)
 {
-  if ((whence >= 0) && (whence <= 2)) {
-    if (((lp_ac_data)(h->priv_data))->seek_proc != NULL) {
-      return ((lp_ac_data)(h->priv_data))->seek_proc(((lp_ac_data)(h->priv_data))->sender, pos, whence);
-    } 
+  if (((lp_ac_data)(opaque))->seek_proc != NULL) {
+    if ((whence >= 0) && (whence <= 2)) {
+      return ((lp_ac_data)(opaque))->seek_proc(
+        ((lp_ac_data)(opaque))->sender, pos, whence);
+    }
   }
 
   return -1;
 }
 
-//Function called by FFMpeg when the stream should be closed
-static int file_close(URLContext *h)
+static AVInputFormat *av_probe_input_format2(AVProbeData *pd, int *score_max)
 {
-  if (((lp_ac_data)(h->priv_data))->close_proc != NULL) {
-    return ((lp_ac_data)(h->priv_data))->close_proc(((lp_ac_data)(h->priv_data))->sender);
-  }
+  AVInputFormat *fmt1, *fmt;
+  int score;
+
+  fmt = NULL;
+  for(fmt1 = first_iformat; fmt1 != NULL; fmt1 = fmt1->next) {
+    score = 0;
     
-  return 0;
+    //Only handle formats which require a file to be opened (test)
+    if (fmt1->flags & AVFMT_NOFILE) {
+      continue;
+    }
+    
+    if (fmt1->read_probe) {
+      score = fmt1->read_probe(pd);
+    } else if (fmt1->extensions) {
+      if (av_match_ext(pd->filename, fmt1->extensions)) {
+          score = 50;
+      }
+    }
+    if (score > *score_max) {
+      *score_max = score;
+      fmt = fmt1;
+    } else if (score == *score_max) {   
+      fmt = NULL;
+    }
+  }
+  return fmt;
+}
+
+
+AVInputFormat* ac_probe_input_buffer(
+  char* buf,
+  int bufsize,
+  char* filename,
+  int* score_max) 
+{
+  AVProbeData pd;
+  
+  //Set the filename
+  pd.filename = "";
+  if (filename) {
+    pd.filename = filename;
+  }  
+    
+  //Set the probe data buffer
+  pd.buf = buf;
+  pd.buf_size = bufsize;
+  
+  //Test it
+  return av_probe_input_format2(&pd, score_max);
+} 
+
+#define PROBE_BUF_MIN 2048
+#define PROBE_BUF_MAX (1<<20)
+
+AVInputFormat* ac_probe_input_stream(
+  void* sender,
+  ac_read_callback read_proc, 
+  char* filename,
+  void* *buf,
+  int* buf_read)
+{
+  //Initialize the result variables
+  AVInputFormat* fmt = NULL;
+  *buf_read = 0;
+  *buf = NULL;
+  int last_iteration = 0;
+  int probe_size = 0;
+  
+  for (probe_size = PROBE_BUF_MIN;
+       (probe_size <= PROBE_BUF_MAX) && !fmt && !last_iteration;
+       probe_size<<=1) {    
+    int score = AVPROBE_SCORE_MAX / 4;
+        
+    //Allocate some memory for the current probe buffer
+    void* tmp_buf = mgr_malloc(probe_size);
+        
+    //Copy the old data to the new buffer
+    if (*buf) {
+      memcpy(tmp_buf, *buf, *buf_read);      
+      //Free the old data memory
+      mgr_free(*buf);      
+    }    
+
+    //Read the new data 
+    void* write_ptr = tmp_buf + *buf_read;
+    int read_size = probe_size - *buf_read;
+    int size;
+    if (size = read_proc(sender, write_ptr, read_size) < read_size) {
+      last_iteration = 1;
+      probe_size = *buf_read + size;
+    }
+    
+    //Probe it
+    fmt = ac_probe_input_buffer(tmp_buf, probe_size, filename, &score);
+
+    //Set the new buffer
+    *buf = tmp_buf;
+    *buf_read = probe_size;
+  }
+  
+  //Return the result
+  return fmt;
 }
 
 int CALL_CONVT ac_open(
@@ -256,8 +297,8 @@ int CALL_CONVT ac_open(
   ac_openclose_callback open_proc,
   ac_read_callback read_proc, 
   ac_seek_callback seek_proc,
-  ac_openclose_callback close_proc) {
-  
+  ac_openclose_callback close_proc)
+{ 
   pacInstance->opened = 0;
   
   //Set last instance
@@ -268,39 +309,57 @@ int CALL_CONVT ac_open(
   ((lp_ac_data)pacInstance)->open_proc = open_proc;  
   ((lp_ac_data)pacInstance)->read_proc = read_proc;
   ((lp_ac_data)pacInstance)->seek_proc = seek_proc;
-  ((lp_ac_data)pacInstance)->close_proc = close_proc;      
+  ((lp_ac_data)pacInstance)->close_proc = close_proc;   
+
+  //Call the file open proc
+  if (open_proc != NULL) {
+    open_proc(sender);
+  }    
  
-  //Create a new protocol name
-  unique_protocol_name(((lp_ac_data)pacInstance)->protocol_name);  
- 
-  //Create a new protocol
-  ((lp_ac_data)pacInstance)->protocol.name = ((lp_ac_data)pacInstance)->protocol_name;
-  ((lp_ac_data)pacInstance)->protocol.url_open = &file_open;
-  ((lp_ac_data)pacInstance)->protocol.url_read = &file_read;
-  ((lp_ac_data)pacInstance)->protocol.url_write = NULL;
-  if (!(seek_proc == NULL)) {
-    ((lp_ac_data)pacInstance)->protocol.url_seek = &file_seek;
+  //Probe the input format
+  int probe_size = 0;
+  AVInputFormat* fmt = ac_probe_input_stream(sender, read_proc, "",
+    (void*)&((lp_ac_data)pacInstance)->buffer, &probe_size);         
+   
+  if (!fmt) return -1;
+  
+
+  if (!seek_proc) {
+    init_put_byte(
+      &(((lp_ac_data)pacInstance)->io),
+      ((lp_ac_data)pacInstance)->buffer,
+      probe_size, 0, pacInstance, io_read, 0, NULL);
+    //((lp_ac_data)pacInstance)->io.is_streamed = 1;
+    
+    //Feed the probed bytes into the IO-Context 
+    ((lp_ac_data)pacInstance)->io.buf_end =
+      ((lp_ac_data)pacInstance)->buffer + probe_size;
+    ((lp_ac_data)pacInstance)->io.pos = probe_size;    
   } else {
-    ((lp_ac_data)pacInstance)->protocol.url_seek = NULL;
+    //If the stream is seekable, seek back to the beginning of the stream and
+    //let FFMpeg start from the beginning
+    mgr_free(((lp_ac_data)pacInstance)->buffer);    
+    seek_proc(sender, 0, SEEK_SET);
+    
+    //Reserve AC_BUFSIZE Bytes of memory
+    ((lp_ac_data)pacInstance)->buffer = mgr_malloc(AC_BUFSIZE);  
+     
+
+    init_put_byte(
+      &(((lp_ac_data)pacInstance)->io),
+      ((lp_ac_data)pacInstance)->buffer,
+      AC_BUFSIZE, 0, pacInstance, io_read, 0, io_seek);  
   }
-  ((lp_ac_data)pacInstance)->protocol.url_close = &file_close;
   
-  //Register the generated protocol
-  register_protocol(&((lp_ac_data)pacInstance)->protocol);
-  
-  //Generate a unique filename
-  char filename[50];
-  strcpy(filename, ((lp_ac_data)pacInstance)->protocol_name);
-  strcat(filename, "://dummy.file");
-  
-  if(av_open_input_file(
-      &(((lp_ac_data)pacInstance)->pFormatCtx), filename, NULL, 0, NULL) != 0 ) {
+  if(av_open_input_stream(&(((lp_ac_data)pacInstance)->pFormatCtx),
+    &(((lp_ac_data)pacInstance)->io), "", fmt, NULL) < 0)
+  {
     return -1;
-  }
- 
+  }   
+  
   //Retrieve stream information
-  if(av_find_stream_info(((lp_ac_data)pacInstance)->pFormatCtx)>=0) {
-    AVFormatContext *ctx = ((lp_ac_data)pacInstance)->pFormatCtx;
+  AVFormatContext *ctx = ((lp_ac_data)pacInstance)->pFormatCtx;  
+  if(av_find_stream_info(ctx) >= 0) {    
     strcpy(pacInstance->info.title, ctx->title);
     strcpy(pacInstance->info.author, ctx->author);
     strcpy(pacInstance->info.copyright, ctx->copyright);
@@ -312,23 +371,35 @@ int CALL_CONVT ac_open(
     pacInstance->info.track = ctx->track;
     pacInstance->info.bitrate = ctx->bit_rate;     
    
-    pacInstance->info.duration = ctx->duration * 1000 / AV_TIME_BASE;    
+    pacInstance->info.duration = ctx->duration * 1000 / AV_TIME_BASE;      
   } else {
     return -1;
   }
   
+ 
   //Set some information in the instance variable 
   pacInstance->stream_count = ((lp_ac_data)pacInstance)->pFormatCtx->nb_streams;
   pacInstance->opened = pacInstance->stream_count > 0;  
+  
+  return 0;
 }
 
 void CALL_CONVT ac_close(lp_ac_instance pacInstance) {
-  if (pacInstance->opened) {
-    unregister_protocol(&((lp_ac_data)(pacInstance))->protocol);
-    av_close_input_file(((lp_ac_data)(pacInstance))->pFormatCtx);
+  if (pacInstance->opened) {    
+    //Close the opened file
+    if (((lp_ac_data)(pacInstance))->close_proc != NULL) {
+      ((lp_ac_data)(pacInstance))->close_proc(((lp_ac_data)(pacInstance))->sender);
+    }
+    
+    if (((lp_ac_data)(pacInstance))->buffer) {
+      mgr_free(((lp_ac_data)(pacInstance))->buffer);
+    }
+    
+    av_close_input_stream(((lp_ac_data)(pacInstance))->pFormatCtx);
     pacInstance->opened = 0;    
   }
 }
+
 void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb, lp_ac_stream_info info) {
   if (!(pacInstance->opened)) { 
     return;
@@ -352,8 +423,8 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb, lp_ac_str
       }
       
     info->additional_info.video_info.frames_per_second =
-      (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.den /
-      (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.num;
+      (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.num /
+      (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.den;
     break;
     case CODEC_TYPE_AUDIO:
       //Set stream type to "AUDIO"
@@ -415,8 +486,6 @@ lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance) {
     lp_ac_package_data pTmp = (lp_ac_package_data)(mgr_malloc(sizeof(ac_package_data)));
     
     //Set package data
-    pTmp->package.data = Package.data;
-    pTmp->package.size = Package.size;
     pTmp->package.stream_index = Package.stream_index;
     pTmp->ffpackage = Package;
     if (Package.dts != AV_NOPTS_VALUE) {
@@ -432,8 +501,12 @@ lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance) {
 //Frees the currently loaded package
 void CALL_CONVT ac_free_package(lp_ac_package pPackage) {
   //Free the packet
-  if (pPackage != NULL) {    
-    av_free_packet(&((lp_ac_package_data)pPackage)->ffpackage);
+  if (pPackage != NULL) {        
+    AVPacket* pkt = &((lp_ac_package_data)pPackage)->ffpackage;
+    if (pkt) {
+      if (pkt->destruct) pkt->destruct(pkt);
+      pkt->data = NULL; pkt->size = 0;
+    }     
     mgr_free((lp_ac_package_data)pPackage);
   }
 }
@@ -544,26 +617,20 @@ lp_ac_decoder CALL_CONVT ac_create_decoder(lp_ac_instance pacInstance, int nb) {
     result = ac_create_audio_decoder(pacInstance, &info, nb);  
   }
   
-  result->timecode = 0;
+  result->timecode = 0;  
   ((lp_ac_decoder_data)result)->last_timecode = 0;
   ((lp_ac_decoder_data)result)->sought = 1;
-  ((lp_ac_decoder_data)result)->time_gaps = 0;
   
   return result;
 }
 
 int ac_decode_video_package(lp_ac_package pPackage, lp_ac_video_decoder pDecoder) {
   int finished;
-  avcodec_decode_video(
+  avcodec_decode_video2(
     pDecoder->pCodecCtx, pDecoder->pFrame, &finished, 
-    pPackage->data, pPackage->size);
+    &(((lp_ac_package_data)pPackage)->ffpackage));
   
-  if (finished) {
-/*    img_convert(
-      (AVPicture*)(pDecoder->pFrameRGB), convert_pix_format(pDecoder->decoder.pacInstance->output_format), 
-      (AVPicture*)(pDecoder->pFrame), pDecoder->pCodecCtx->pix_fmt, 
-			pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height);*/
-      
+  if (finished) {     
       pDecoder->pSwsCtx = sws_getCachedContext(pDecoder->pSwsCtx,
         pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height, pDecoder->pCodecCtx->pix_fmt,
         pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height, convert_pix_format(pDecoder->decoder.pacInstance->output_format),
@@ -571,7 +638,7 @@ int ac_decode_video_package(lp_ac_package pPackage, lp_ac_video_decoder pDecoder
                                   
       sws_scale(
         pDecoder->pSwsCtx,
-        pDecoder->pFrame->data,
+        (uint8_t*)(pDecoder->pFrame->data),
         pDecoder->pFrame->linesize,
         0, //?
         pDecoder->pCodecCtx->height, 
@@ -584,40 +651,52 @@ int ac_decode_video_package(lp_ac_package pPackage, lp_ac_video_decoder pDecoder
 }
 
 int ac_decode_audio_package(lp_ac_package pPackage, lp_ac_audio_decoder pDecoder) {
-  int len1;
+  //Variables describing the destination buffer
   int dest_buffer_size = pDecoder->max_buffer_size;
   int dest_buffer_pos = 0;
-  int size;
-  uint8_t *src_buffer = pPackage->data;
-  int src_buffer_size = pPackage->size;
   
-  pDecoder->decoder.buffer_size = 0;
+  //An dummy package representing the source buffer
+  AVPacket pkt_tmp;
+  pkt_tmp.data = ((lp_ac_package_data)pPackage)->ffpackage.data;
+  pkt_tmp.size = ((lp_ac_package_data)pPackage)->ffpackage.size;
   
-  while (src_buffer_size > 0) {
-    //Set the size of bytes that can be written to the current size of the destination buffer
-    size = dest_buffer_size;
-    
-    //Decode a piece of the audio buffer. len1 contains the count of bytes read from the soure buffer.
-    len1 = avcodec_decode_audio2(
-      pDecoder->pCodecCtx, (uint16_t*)(pDecoder->decoder.pBuffer + dest_buffer_pos), &size, 
-      src_buffer, src_buffer_size);
-     
-    src_buffer_size -= len1;
-    src_buffer      += len1;
-    
-    dest_buffer_size -= size;
-    dest_buffer_pos += size;
-    pDecoder->decoder.buffer_size = dest_buffer_pos;
-    
+  //Initialize the buffer size
+  pDecoder->decoder.buffer_size = 0;   
+  
+  while (pkt_tmp.size > 0) {  
+  
     if (dest_buffer_size <= AUDIO_BUFFER_BASE_SIZE) {
       pDecoder->decoder.pBuffer = mgr_realloc(pDecoder->decoder.pBuffer, pDecoder->max_buffer_size * 2);
       dest_buffer_size += pDecoder->max_buffer_size;
       pDecoder->max_buffer_size *= 2;
     }
     
-    if (len1 <= 0) {    
-      return 1;
-    }
+    //Set the size of bytes that can be written to the current size of the destination buffer
+    int size = dest_buffer_size;
+    
+    //Decode a piece of the audio buffer. len1 contains the count of bytes read from the soure buffer.
+    int len1 = avcodec_decode_audio3(
+      pDecoder->pCodecCtx, (int16_t*)(pDecoder->decoder.pBuffer + dest_buffer_pos),
+      &size, &pkt_tmp
+    );
+    
+    //If an error occured, skip the frame
+    if (len1 <= 0) 
+      return 0;    
+      
+    if (size <= 0)
+      continue;    
+    
+    //Increment the source buffer pointers     
+    pkt_tmp.size -= len1;
+    pkt_tmp.data += len1;
+    
+    //Increment the destination buffer pointers
+    dest_buffer_size -= size;
+    dest_buffer_pos += size;
+    pDecoder->decoder.buffer_size = dest_buffer_pos;   
+    
+    return 1;
   }
   
   return 1;
@@ -626,7 +705,7 @@ int ac_decode_audio_package(lp_ac_package pPackage, lp_ac_audio_decoder pDecoder
 int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder) {
   double timebase = 
     av_q2d(((lp_ac_data)pDecoder->pacInstance)->pFormatCtx->streams[pPackage->stream_index]->time_base);
-    
+  
   //Create a valid timecode
   if (((lp_ac_package_data)pPackage)->pts > 0) {
     lp_ac_decoder_data dec_dat = (lp_ac_decoder_data)pDecoder;    
@@ -644,23 +723,19 @@ int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
     } else {
       max_delta = 4.0;
       min_delta = 0.0;
-    }    
-    
-    if (((delta < min_delta) || (delta > max_delta)) && (dec_dat->time_gaps < 50)) {
+    }
+      
+    if ((delta < min_delta) || (delta > max_delta)) {
       pDecoder->timecode = dec_dat->last_timecode;
       if (dec_dat->sought > 0) {
         ++dec_dat->sought;
-      } else {
-        ++dec_dat->time_gaps;
       }
-    } else {
-      dec_dat->time_gaps = 0;
     }
   }
   
   if (pDecoder->type == AC_DECODER_TYPE_VIDEO) {
     return ac_decode_video_package(pPackage, (lp_ac_video_decoder)pDecoder);
-  } 
+  }
   else if (pDecoder->type == AC_DECODER_TYPE_AUDIO) {
     return ac_decode_audio_package(pPackage, (lp_ac_audio_decoder)pDecoder);  
   }
