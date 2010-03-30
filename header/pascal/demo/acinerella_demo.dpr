@@ -47,12 +47,7 @@ end;
 
 function seek_proc(sender: Pointer; pos: int64; whence: integer): int64; cdecl;
 begin
-  Writeln('Seeking to pos ', pos, ' from ', whence);
-  if (whence = 0) or (whence = 1) then
-    result := fs.Seek(pos, TSeekOrigin(whence))
-  else
-    result := -1;
-  Writeln(result);
+  result := fs.Seek(pos, TSeekOrigin(whence))
 end;
 
 begin
@@ -178,6 +173,7 @@ begin
           //OpenGL/Direct3D to draw your video data.
           {$IFNDEF FPC}
           Move(videodecoder^.buffer^, bmp.Scanline[bmp.Height-1]^, videodecoder^.buffer_size);
+          SetStretchBltMode(frm.Canvas.Handle, HALFTONE); 
           StretchBlt(frm.Canvas.Handle, 0, frm.Height, frm.Width, -frm.Height, bmp.Canvas.Handle,
             0, 0, bmp.Width, bmp.Height, SRCCOPY);
           {$ENDIF}
@@ -216,6 +212,4 @@ begin
 
   frm.Free;
   bmp.Free;
-
-  readln;
 end.
