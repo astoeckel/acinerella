@@ -27,6 +27,10 @@ by your OS.
 #include <stdlib.h>
 #include <fcntl.h>
 
+#ifdef __LINUX
+#define O_BINARY 0
+#endif
+
 char *filename;
 int source;
 int read_cnt = 0;
@@ -37,9 +41,9 @@ int CALL_CONVT read_callback(void *sender, char *buf, int size) {
 }
 
 int64_t CALL_CONVT seek_callback(void *sender, int64_t pos, int whence) {
-  printf("Seek Whence: %d Pos: %ld \n", whence, pos);
+  printf("Seek Whence: %d Pos: %lld \n", whence, pos);
   int64_t res = lseek(source, pos, whence);
-  printf("%ld \n", res);
+  printf("%lld \n", res);
   return res;
 }
 
@@ -84,7 +88,11 @@ int main(int argc, char *argv[]) {
   int audiofile;
   
   //Open a file for raw audio output
+#ifdef __LINUX
+  audiofile = open("acin_test.raw", O_WRONLY | O_CREAT, 0777);
+#else
   audiofile = open("acin_test.raw", O_WRONLY | O_CREAT | O_BINARY);
+#endif
   
   //Save the filename of the file that should be opened in a string
   filename = argv[1];
@@ -103,7 +111,7 @@ int main(int argc, char *argv[]) {
   printf("Count of Datastreams:  %d \n", pData->stream_count);
   
   //Print file info
-  printf("File duration: %d \n", pData->info.duration);
+  printf("File duration: %lld \n", pData->info.duration);
   printf("Title: %s \n", pData->info.title);
   printf("Author: %s \n", pData->info.author);
   printf("Album: %s \n", pData->info.album);

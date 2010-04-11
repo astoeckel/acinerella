@@ -1,13 +1,22 @@
+OS	= $(shell uname -s)
+ifeq ($(OS), Linux)
+	OS_PREFIX = __LINUX
+endif
+
+ifeq ($(OS), Windows)
+	OS_PREFIX = __WINDOWS
+endif
+
 acinerella: acinerella.c acinerella.h
 	gcc -c -fPIC acinerella.c
 
-ifeq "$(OSTYPE)" "linux"
-	gcc -shared -o libacinerella.so acinerella.o -lavformat -lavcodec -lavutil -lm -lswscale
+ifeq ($(OS), Linux)
+	gcc -D $(OS_PREFIX) -shared -o libacinerella.so acinerella.o -lavformat -lavcodec -lavutil -lm -lswscale -lz
 	strip libacinerella.so
 else
-	gcc -shared -o acinerella.dll acinerella.o -lavformat -lavcodec -lavutil -lm -lswscale -lws2_32
+	gcc -D $(OS_PREFIX) -shared -o acinerella.dll acinerella.o -lavformat -lavcodec -lavutil -lm -lswscale -lz -lws2_32
 	strip acinerella.dll
 endif
 
 test: test.c acinerella.h
-	gcc -o test test.c -L. -lacinerella
+	gcc -D $(OS_PREFIX) -o test test.c -L. -lacinerella

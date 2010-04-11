@@ -25,9 +25,6 @@
 #include <libswscale/swscale.h>
 #include <string.h>
 
-//!
-//#include <stdio.h>
-
 #define AUDIO_BUFFER_BASE_SIZE ((AVCODEC_MAX_AUDIO_FRAME_SIZE * 3) / 2)
 
 
@@ -390,13 +387,16 @@ void CALL_CONVT ac_close(lp_ac_instance pacInstance) {
     if (((lp_ac_data)(pacInstance))->close_proc != NULL) {
       ((lp_ac_data)(pacInstance))->close_proc(((lp_ac_data)(pacInstance))->sender);
     }
-    
+   
+    av_close_input_stream(((lp_ac_data)(pacInstance))->pFormatCtx);
+    pacInstance->opened = 0;
+
+    /*
+    Auto freed by av_close_input_stream
     if (((lp_ac_data)(pacInstance))->buffer) {
       mgr_free(((lp_ac_data)(pacInstance))->buffer);
-    }
-    
-    av_close_input_stream(((lp_ac_data)(pacInstance))->pFormatCtx);
-    pacInstance->opened = 0;    
+    }*/
+
   }
 }
 
