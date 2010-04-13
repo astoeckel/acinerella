@@ -11,11 +11,11 @@ acinerella: acinerella.c acinerella.h
 	gcc -c -fPIC acinerella.c
 
 ifeq ($(OS), Linux)
-	gcc -D $(OS_PREFIX) -shared -o libacinerella.so acinerella.o -lavformat -lavcodec -lavutil -lm -lswscale -lz
-	strip libacinerella.so
+	gcc -D $(OS_PREFIX) -shared -o libacinerella.so acinerella.o -lavformat -lavcodec -lavutil -lm -lswscale -lz -g
+#	strip libacinerella.so
 else
-	gcc -D $(OS_PREFIX) -shared -o acinerella.dll acinerella.o -lavformat -lavcodec -lavutil -lm -lswscale -lz -lws2_32
-	strip acinerella.dll
+	gcc -D $(OS_PREFIX) -shared -o acinerella.dll acinerella.o -lavformat -lavcodec -lavutil -lm -lswscale -lz -lws2_32 -g
+#	strip acinerella.dll
 endif
 
 test: test.c acinerella.h
