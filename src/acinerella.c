@@ -335,22 +335,17 @@ int CALL_CONVT ac_open(
   } else {
     //If the stream is seekable, seek back to the beginning of the stream and
     //let FFMpeg start from the beginning
-    printf("HALLO\n");
     av_free(((lp_ac_data)pacInstance)->buffer);    
 
-    printf("HALLO2\n");
     seek_proc(sender, 0, SEEK_SET);
 
-    printf("HALLO3\n");    
     //Reserve AC_BUFSIZE Bytes of memory
     ((lp_ac_data)pacInstance)->buffer = av_malloc(AC_BUFSIZE);       
 
-    printf("HALLO4\n");
     init_put_byte(
       &(((lp_ac_data)pacInstance)->io),
       ((lp_ac_data)pacInstance)->buffer,
       AC_BUFSIZE, 0, pacInstance, io_read, 0, io_seek);  
-    printf("HALLO5\n");
   }
   
   if(av_open_input_stream(&(((lp_ac_data)pacInstance)->pFormatCtx),
@@ -359,8 +354,6 @@ int CALL_CONVT ac_open(
     return -1;
   }   
 
-  printf("HALLO6\n");
-  
   //Retrieve stream information
   AVFormatContext *ctx = ((lp_ac_data)pacInstance)->pFormatCtx;  
   if(av_find_stream_info(ctx) >= 0) {    
@@ -380,15 +373,10 @@ int CALL_CONVT ac_open(
     return -1;
   }
 
-  printf("HALLO7\n");
-  
- 
   //Set some information in the instance variable 
   pacInstance->stream_count = ((lp_ac_data)pacInstance)->pFormatCtx->nb_streams;
   pacInstance->opened = pacInstance->stream_count > 0;  
 
-  printf("HALLO8\n");
-  
   return 0;
 }
 
