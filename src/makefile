@@ -24,3 +24,13 @@ endif
 
 test: test.c acinerella.h
 	gcc -D $(OS_PREFIX) -o test test.c -L. -lacinerella
+
+clean:
+	rm -f ./*.o
+	rm -f ./*.exe
+	rm -f ./libacinerella.so
+	rm -f ./acinerella.dll
+	rm -f ./test
+	rm -f ./test.exe
+	rm -f ./*.raw
+	rm -f ./*.ppm

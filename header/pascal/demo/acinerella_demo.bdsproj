@@ -130,7 +130,7 @@
 			<Directories Name="UsePackages">False</Directories>
 		</Directories>
 		<Parameters>
-			<Parameters Name="RunParams">"M:\Images\Spielfilme\KNOWING.ISO"</Parameters>
+			<Parameters Name="RunParams">D:\Videos\Trailer\sintel_trailer-1080p.ogv</Parameters>
 			<Parameters Name="HostApplication"></Parameters>
 			<Parameters Name="Launcher"></Parameters>
 			<Parameters Name="UseLauncher">False</Parameters>

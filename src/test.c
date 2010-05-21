@@ -62,7 +62,7 @@ void SaveFrame(char *buffer, int width, int height, int iFrame) {
   int  y;
   
   // Open file
-  sprintf(szFilename, "img/frame%05d.ppm", iFrame);
+  sprintf(szFilename, "frame%05d.ppm", iFrame);
   pFile=fopen(szFilename, "wb");
   if(pFile==NULL)
     return;

@@ -423,17 +423,20 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb, lp_ac_str
         ((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->codec->width;
       info->additional_info.video_info.frame_height = 
         ((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->codec->height;
-      info->additional_info.video_info.pixel_aspect = 
-        av_q2d(((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->codec->sample_aspect_ratio);
-      //Sometime "pixel aspect" may be zero. Correct this.
-      if (info->additional_info.video_info.pixel_aspect == 0.0) {
-        info->additional_info.video_info.pixel_aspect = 1.0;
-      }
       
-    info->additional_info.video_info.frames_per_second =
-      (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.num /
-      (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.den;
-    break;
+      double pixel_aspect_num = ((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->codec->sample_aspect_ratio.num;
+      double pixel_aspect_den = ((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->codec->sample_aspect_ratio.den;
+
+      //Sometime "pixel aspect" may be zero or have other invalid values. Correct this.
+      if (pixel_aspect_num <= 0.0 || pixel_aspect_den <= 0.0)
+        info->additional_info.video_info.pixel_aspect = 1.0;
+      else
+        info->additional_info.video_info.pixel_aspect = pixel_aspect_num / pixel_aspect_den;
+
+      info->additional_info.video_info.frames_per_second =
+        (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.num /
+        (double)((lp_ac_data)pacInstance)->pFormatCtx->streams[nb]->r_frame_rate.den;
+      break;
     case CODEC_TYPE_AUDIO:
       //Set stream type to "AUDIO"
       info->stream_type = AC_STREAM_TYPE_AUDIO;

@@ -77,7 +77,7 @@ begin
   Writeln;
 
   inst := ac_init();
-  ac_open(inst, nil, nil, @read_proc, @seek_proc, nil);
+  ac_open(inst, nil, nil, @read_proc, nil, nil, nil);
 
   Writeln('Count of Datastreams: ', inst^.stream_count);
   Writeln('Length of the file: ', inst^.info.duration);

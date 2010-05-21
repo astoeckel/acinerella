@@ -73,10 +73,10 @@ type
     AC_OUTPUT_BGRA32 = 3
   );
   
-  TAc_infostr = array[0..511] of Char;
-  TAc_infostr2 = array[0..31] of Char;
+  TAc_infostr = array[0..511] of AnsiChar;
+  TAc_infostr2 = array[0..31] of AnsiChar;
 
-  {Contains information about the whole file/stream that has been opened. Default 
+  {Contains information about the whole file/stream that has been opened. Default
    values are "" for strings and -1 for integer values.}
   TAc_file_info = record
     title: TAc_infostr;
@@ -212,7 +212,7 @@ function ac_open(
   open_proc: TAc_openclose_callback;
   read_proc: TAc_read_callback;
   seek_proc: TAc_seek_callback;
-  close_proc: TAc_openclose_callback
+  close_proc: TAc_openclose_callback;
   proberesult: PAc_proberesult): integer; cdecl; external ac_dll;
 
 {Closes an opened media file.}
@@ -242,8 +242,8 @@ The parameter "dir" specifies the seek direction: 0 for forward, -1 for backward
 The target_pos paremeter is in milliseconds. Returns 1 if the functions succeded.}
 function ac_seek(pDecoder: PAc_decoder; dir: integer; target_pos: int64): integer; cdecl; external ac_dll;
 
-function ac_probe_input_buffer(buf: PChar; bufsize: Intgeger; filename: PChar;
-  var score_max: Integer); cdecl; external ac_dll;
+function ac_probe_input_buffer(buf: PChar; bufsize: Integer; filename: PChar;
+  var score_max: Integer): PAc_proberesult; cdecl; external ac_dll;
 
 implementation
 
