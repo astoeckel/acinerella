@@ -58,7 +58,7 @@ begin
   if not FileExists(ParamStr(1)) then
   begin
     Writeln('Source file not specified. Simply drag and drop a video or an audio ' +
-      'file on the executable. Press enter to close the program.');
+      'file on the executable. Press return to close the program.');
     Readln;
     halt;
   end;
@@ -153,7 +153,7 @@ begin
 
   if not inst^.opened then
   begin
-    Writeln('No video/audio information found. Press enter to leave.');
+    Writeln('No video/audio information found. Press return to leave.');
     Readln;
     exit;
   end;

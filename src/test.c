@@ -41,9 +41,7 @@ int CALL_CONVT read_callback(void *sender, char *buf, int size) {
 }
 
 int64_t CALL_CONVT seek_callback(void *sender, int64_t pos, int whence) {
-  printf("Seek Whence: %d Pos: %lld \n", whence, pos);
   int64_t res = lseek(source, pos, whence);
-  printf("%lld \n", res);
   return res;
 }
 
@@ -105,7 +103,7 @@ int main(int argc, char *argv[]) {
   
   //Open the video/audio file by passing the function pointers to the open, read and close callbacks to Acinerella.
   //Only the read callback is neccessary, all other callbacks may be 0
-  ac_open(pData, 0, &open_callback, &read_callback, &seek_callback, &close_callback);
+  ac_open(pData, 0, &open_callback, &read_callback, &seek_callback, &close_callback, NULL);
   
   //Display the count of the found data streams.
   printf("Count of Datastreams:  %d \n", pData->stream_count);

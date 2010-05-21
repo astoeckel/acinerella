@@ -179,6 +179,8 @@ type
   {Pointer on TAc_package}
   PAc_package = ^TAc_package;
 
+  PAc_proberesult = Pointer;
+
   {Callback function used to ask the application to read data. Should return
    the number of bytes read or an value smaller than zero if an error occured.}
   TAc_read_callback = function(sender: Pointer; buf: PByte; size: integer): integer; cdecl;
@@ -210,7 +212,8 @@ function ac_open(
   open_proc: TAc_openclose_callback;
   read_proc: TAc_read_callback;
   seek_proc: TAc_seek_callback;
-  close_proc: TAc_openclose_callback): integer; cdecl; external ac_dll;
+  close_proc: TAc_openclose_callback
+  proberesult: PAc_proberesult): integer; cdecl; external ac_dll;
 
 {Closes an opened media file.}
 procedure ac_close(inst: PAc_instance);cdecl; external ac_dll;
@@ -239,6 +242,8 @@ The parameter "dir" specifies the seek direction: 0 for forward, -1 for backward
 The target_pos paremeter is in milliseconds. Returns 1 if the functions succeded.}
 function ac_seek(pDecoder: PAc_decoder; dir: integer; target_pos: int64): integer; cdecl; external ac_dll;
 
+function ac_probe_input_buffer(buf: PChar; bufsize: Intgeger; filename: PChar;
+  var score_max: Integer); cdecl; external ac_dll;
 
 implementation
 

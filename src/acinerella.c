@@ -129,11 +129,7 @@ void init_info(lp_ac_file_info info)
   info->bitrate = -1;
 }
 
-lp_ac_instance CALL_CONVT ac_init(void) {
-  //Initialize FFMpeg libraries
-  avcodec_register_all();  
-  av_register_all();
-  
+lp_ac_instance CALL_CONVT ac_init(void) { 
   //Allocate a new instance of the videoplayer data and return it
   lp_ac_data ptmp;  
   ptmp = (lp_ac_data)mgr_malloc(sizeof(ac_data));
@@ -181,7 +177,7 @@ static int64_t io_seek(void *opaque, int64_t pos, int whence)
   return -1;
 }
 
-static AVInputFormat *av_probe_input_format2(AVProbeData *pd, int *score_max)
+static AVInputFormat *_av_probe_input_format2(AVProbeData *pd, int *score_max)
 {
   AVInputFormat *fmt1, *fmt;
   int score;
@@ -213,14 +209,18 @@ static AVInputFormat *av_probe_input_format2(AVProbeData *pd, int *score_max)
 }
 
 
-AVInputFormat* ac_probe_input_buffer(
+lp_ac_proberesult CALL_CONVT ac_probe_input_buffer(
   char* buf,
   int bufsize,
   char* filename,
   int* score_max) 
 {
   AVProbeData pd;
-  
+
+  //Initialize FFMpeg libraries
+  avcodec_register_all();  
+  av_register_all();
+
   //Set the filename
   pd.filename = "";
   if (filename) {
@@ -232,7 +232,7 @@ AVInputFormat* ac_probe_input_buffer(
   pd.buf_size = bufsize;
   
   //Test it
-  return av_probe_input_format2(&pd, score_max);
+  return (lp_ac_proberesult)_av_probe_input_format2(&pd, score_max);
 } 
 
 #define PROBE_BUF_MIN 2048
@@ -277,7 +277,7 @@ AVInputFormat* ac_probe_input_stream(
     }
     
     //Probe it
-    fmt = ac_probe_input_buffer(tmp_buf, probe_size, filename, &score);
+    fmt = (AVInputFormat*)ac_probe_input_buffer(tmp_buf, probe_size, filename, &score);
 
     //Set the new buffer
     *buf = tmp_buf;
@@ -294,7 +294,8 @@ int CALL_CONVT ac_open(
   ac_openclose_callback open_proc,
   ac_read_callback read_proc, 
   ac_seek_callback seek_proc,
-  ac_openclose_callback close_proc)
+  ac_openclose_callback close_proc,
+  lp_ac_proberesult proberesult)
 { 
   pacInstance->opened = 0;
   
@@ -312,14 +313,22 @@ int CALL_CONVT ac_open(
   if (open_proc != NULL) {
     open_proc(sender);
   }    
- 
-  //Probe the input format
-  int probe_size = 0;
-  AVInputFormat* fmt = ac_probe_input_stream(sender, read_proc, "",
-    (void*)&((lp_ac_data)pacInstance)->buffer, &probe_size);         
-   
-  if (!fmt) return -1;
   
+  AVInputFormat* fmt = NULL;
+  int probe_size = 0;  
+ 
+  //Probe the input format, if no probe result is specified
+  if (proberesult == NULL)
+  {
+    fmt = ac_probe_input_stream(sender, read_proc, "",
+      (void*)&((lp_ac_data)pacInstance)->buffer, &probe_size);         
+  }
+  else
+  {
+    fmt = (AVInputFormat*)proberesult;
+  }         
+     
+  if (!fmt) return -1;  
 
   if (!seek_proc) {
     init_put_byte(
@@ -637,7 +646,7 @@ int ac_decode_video_package(lp_ac_package pPackage, lp_ac_video_decoder pDecoder
                                   
       sws_scale(
         pDecoder->pSwsCtx,
-        (uint8_t*)(pDecoder->pFrame->data),
+        (const uint8_t* const*)(pDecoder->pFrame->data),
         pDecoder->pFrame->linesize,
         0, //?
         pDecoder->pCodecCtx->height, 

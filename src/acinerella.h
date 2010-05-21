@@ -182,6 +182,8 @@ typedef struct _ac_package ac_package;
 /*Pointer on TAc_package*/
 typedef ac_package* lp_ac_package;
 
+typedef void* lp_ac_proberesult;
+
 /*Callback function used to ask the application to read data. Should return
    the number of bytes read or an value smaller than zero if an error occured.*/
 typedef int CALL_CONVT (*ac_read_callback)(void *sender, char *buf, int size);
@@ -219,7 +221,8 @@ extern int CALL_CONVT ac_open(
   ac_openclose_callback open_proc,
   ac_read_callback read_proc,
   ac_seek_callback seek_proc,
-  ac_openclose_callback close_proc);
+  ac_openclose_callback close_proc,
+  lp_ac_proberesult proberesult);
 /*Closes an opened media file.*/
 extern void CALL_CONVT ac_close(lp_ac_instance pacInstance);
   
@@ -245,5 +248,7 @@ but seeks the whole file forward. The stream number paremter (nb) is only used f
 The parameter "dir" specifies the seek direction: 0 for forward, -1 for backward.
 The target_pos paremeter is in milliseconds. Returns 1 if the functions succeded.*/
 extern int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos);
+
+extern lp_ac_proberesult CALL_CONVT ac_probe_input_buffer(char* buf, int bufsize, char* filename, int* score_max);
 
 #endif /*VIDEOPLAY_H*/
