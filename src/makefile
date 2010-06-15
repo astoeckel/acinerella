@@ -1,4 +1,8 @@
 OS	= $(shell uname -o)
+ifeq ($(OS), GNU/Linux)
+	OS_PREFIX = __LINUX
+endif
+
 ifeq ($(OS), Linux)
 	OS_PREFIX = __LINUX
 endif
@@ -14,7 +18,7 @@ endif
 acinerella: acinerella.c acinerella.h
 	gcc -c -fPIC acinerella.c
 
-ifeq ($(OS), Linux)
+ifeq ($(OS_PREFIX), __LINUX)
 	gcc -D $(OS_PREFIX) -shared -o libacinerella.so acinerella.o -lavformat -lavcodec -lavutil -lm -lswscale -lz -g
 	strip libacinerella.so
 else
@@ -34,3 +38,5 @@ clean:
 	rm -f ./test.exe
 	rm -f ./*.raw
 	rm -f ./*.ppm
+	rm -f ./*.?~
+	rm -f ./*.save*
