@@ -25,8 +25,7 @@
 #include <libswscale/swscale.h>
 #include <string.h>
 
-#define AUDIO_BUFFER_BASE_SIZE ((AVCODEC_MAX_AUDIO_FRAME_SIZE * 3) / 2)
-
+#define AUDIO_BUFFER_BASE_SIZE AVCODEC_MAX_AUDIO_FRAME_SIZE
 
 //This struct represents one Acinerella video object.
 //It contains data needed by FFMpeg.
@@ -78,6 +77,7 @@ struct _ac_audio_decoder {
   ac_decoder decoder;
   int sought;
   double last_timecode;
+  char *tmp_buf;
   int max_buffer_size;
   AVCodec *pCodec;
   AVCodecContext *pCodecCtx;
@@ -587,10 +587,12 @@ void* ac_create_audio_decoder(lp_ac_instance pacInstance, lp_ac_stream_info info
     return NULL;
   }
 
-  //Reserve a buffer
-  pDecoder->max_buffer_size = AUDIO_BUFFER_BASE_SIZE;
-  pDecoder->decoder.pBuffer = av_malloc(AUDIO_BUFFER_BASE_SIZE);
+  //Initialize the buffers
+  pDecoder->decoder.pBuffer = NULL; //av_malloc(AUDIO_BUFFER_BASE_SIZE);
   pDecoder->decoder.buffer_size = 0;
+  
+  //Reserve the temporary buffer which contains AVCODEC_MAX_AUDIO_FRAME_SIZE bytes
+  pDecoder->tmp_buf = av_malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
 
   return (void*)pDecoder;
 }
@@ -645,22 +647,21 @@ int ac_decode_video_package(lp_ac_package pPackage, lp_ac_video_decoder pDecoder
 
 int ac_decode_audio_package(lp_ac_package pPackage, lp_ac_audio_decoder pDecoder) {
   //Variables describing the destination buffer
-  int dest_buffer_size = pDecoder->max_buffer_size;
   int dest_buffer_pos = 0;
 
   //Make a copy of the package read by avformat, so that we can move the data pointers around
   AVPacket pkt_tmp = ((lp_ac_package_data)pPackage)->ffpackage;
 
   //Initialize the buffer size
-  pDecoder->decoder.buffer_size = 0;
+  pDecoder->decoder.buffer_size = 0;  
   
   while (pkt_tmp.size > 0) {
     //Set the size of bytes that can be written to the current size of the destination buffer
-    int size = dest_buffer_size;
+    int size = AVCODEC_MAX_AUDIO_FRAME_SIZE;    
 
     //Decode a piece of the audio buffer. len1 contains the count of bytes read from the soure buffer.
     int len1 = avcodec_decode_audio3(
-      pDecoder->pCodecCtx, (int16_t*)(pDecoder->decoder.pBuffer + dest_buffer_pos),
+      pDecoder->pCodecCtx, (int16_t*)(pDecoder->tmp_buf),
       &size, &pkt_tmp
     );
 
@@ -673,13 +674,18 @@ int ac_decode_audio_package(lp_ac_package pPackage, lp_ac_audio_decoder pDecoder
     pkt_tmp.size -= len1;
     pkt_tmp.data += len1;
 
-    if (size <= 0)
-      continue;    
-
-    //Increment the destination buffer pointers
-    dest_buffer_size -= size;
-    dest_buffer_pos += size;
-    pDecoder->decoder.buffer_size = dest_buffer_pos;
+    if (size > 0) {
+      //Reserve enough memory for coping the result data
+      if (dest_buffer_pos + size > pDecoder->max_buffer_size) {
+        pDecoder->decoder.pBuffer = av_realloc(pDecoder->decoder.pBuffer, dest_buffer_pos + size);
+        pDecoder->max_buffer_size = dest_buffer_pos + size;
+      }
+      memcpy(pDecoder->decoder.pBuffer + dest_buffer_pos, pDecoder->tmp_buf, size);
+      
+      //Increment the destination buffer pointers, copy the result to the output buffer      
+      dest_buffer_pos += size;      
+      pDecoder->decoder.buffer_size += size;
+    }
   }
 
   return 1;
@@ -747,14 +753,12 @@ int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos) {
 
 //Free video decoder
 void ac_free_video_decoder(lp_ac_video_decoder pDecoder) {
-//  av_free(pDecoder->decoder.pBuffer);
   av_free(pDecoder->pFrame);
   av_free(pDecoder->pFrameRGB);
   if (pDecoder->pSwsCtx != NULL) {
     sws_freeContext(pDecoder->pSwsCtx);
   }
   avcodec_close(pDecoder->pCodecCtx);
-
 
   //Free reserved memory for the buffer
   av_free(pDecoder->decoder.pBuffer);
@@ -770,6 +774,9 @@ void ac_free_audio_decoder(lp_ac_audio_decoder pDecoder) {
 
   //Free reserved memory for the buffer
   av_free(pDecoder->decoder.pBuffer);
+  
+  //Free the memory reserved for the temporary audio buffer
+  av_free(pDecoder->tmp_buf);
 
   //Free reserved memory for decoder record
   av_free(pDecoder);
