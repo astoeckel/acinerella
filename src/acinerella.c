@@ -113,7 +113,21 @@ void init_info(lp_ac_file_info info)
   info->bitrate = -1;
 }
 
+int av_initialized = 0;
+void ac_init_ffmpeg()
+{
+  if (!av_initialized)
+  {
+    avcodec_register_all();
+    av_register_all();
+    
+    av_initialized = 1;
+  }
+}
+
 lp_ac_instance CALL_CONVT ac_init(void) {
+  ac_init_ffmpeg();
+
   //Allocate a new instance of the videoplayer data and return it
   lp_ac_data ptmp;
   ptmp = (lp_ac_data)av_malloc(sizeof(ac_data));
@@ -137,8 +151,6 @@ void CALL_CONVT ac_free(lp_ac_instance pacInstance) {
   }
 }
 
-lp_ac_data last_instance;
-
 static int io_read(void *opaque, uint8_t *buf, int buf_size)
 {
   if (((lp_ac_data)(opaque))->read_proc != NULL) {
@@ -161,38 +173,6 @@ static int64_t io_seek(void *opaque, int64_t pos, int whence)
   return -1;
 }
 
-static AVInputFormat *_av_probe_input_format2(AVProbeData *pd, int *score_max)
-{
-  AVInputFormat *fmt1, *fmt;
-  int score;
-
-  fmt = NULL;
-  for(fmt1 = first_iformat; fmt1 != NULL; fmt1 = fmt1->next) {
-    score = 0;
-
-    //Only handle formats which require a file to be opened (test)
-    if (fmt1->flags & AVFMT_NOFILE) {
-      continue;
-    }
-
-    if (fmt1->read_probe) {
-      score = fmt1->read_probe(pd);
-    } else if (fmt1->extensions) {
-      if (av_match_ext(pd->filename, fmt1->extensions)) {
-          score = 50;
-      }
-    }
-    if (score > *score_max) {
-      *score_max = score;
-      fmt = fmt1;
-    } else if (score == *score_max) {
-      fmt = NULL;
-    }
-  }
-  return fmt;
-}
-
-
 lp_ac_proberesult CALL_CONVT ac_probe_input_buffer(
   char* buf,
   int bufsize,
@@ -200,23 +180,33 @@ lp_ac_proberesult CALL_CONVT ac_probe_input_buffer(
   int* score_max)
 {
   AVProbeData pd;
+  AVInputFormat *fmt = NULL;
 
   //Initialize FFMpeg libraries
-  avcodec_register_all();
-  av_register_all();
+  ac_init_ffmpeg();
 
   //Set the filename
   pd.filename = "";
   if (filename) {
     pd.filename = filename;
   }
+  
+  //The given buffer has to be copied to a new one, which is aligned and padded
+  char *aligned_buf = av_malloc(bufsize + AVPROBE_PADDING_SIZE);
+  memset(aligned_buf, 0, bufsize + AVPROBE_PADDING_SIZE);
+  memcpy(aligned_buf, buf, bufsize);
 
   //Set the probe data buffer
-  pd.buf = buf;
+  pd.buf = aligned_buf;
   pd.buf_size = bufsize;
-
+  
   //Test it
-  return (lp_ac_proberesult)_av_probe_input_format2(&pd, score_max);
+  fmt = av_probe_input_format2(&pd, 1, score_max);
+  
+  //Free the temporary buffer
+  av_free(aligned_buf);
+
+  return (lp_ac_proberesult)fmt;
 }
 
 #define PROBE_BUF_MIN 2048
@@ -243,7 +233,8 @@ AVInputFormat* ac_probe_input_stream(
     int score = AVPROBE_SCORE_MAX / 4;
 
     //Allocate some memory for the current probe buffer
-    void* tmp_buf = av_malloc(probe_size);
+    void* tmp_buf = av_malloc(probe_size); //Unaligned memory would also be ok here
+    memset(tmp_buf, 0, probe_size);
 
     //Copy the old data to the new buffer
     if (*buf) {
@@ -283,9 +274,6 @@ int CALL_CONVT ac_open(
   lp_ac_proberesult proberesult)
 {
   pacInstance->opened = 0;
-
-  //Set last instance
-  last_instance = (lp_ac_data)pacInstance;
 
   //Store the given parameters in the ac Instance
   ((lp_ac_data)pacInstance)->sender = sender;
@@ -348,6 +336,12 @@ int CALL_CONVT ac_open(
     return -1;
   }
 
+/*  if(av_open_input_file(&(((lp_ac_data)pacInstance)->pFormatCtx), "test.flac",
+    NULL, 0, NULL) < 0)
+  {
+    return -1;
+  }*/
+  
   //Retrieve stream information
   AVFormatContext *ctx = ((lp_ac_data)pacInstance)->pFormatCtx;
   if(av_find_stream_info(ctx) >= 0) {
@@ -480,6 +474,7 @@ lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance) {
   if (av_read_frame(((lp_ac_data)(pacInstance))->pFormatCtx, &Package) >= 0) {
     //Reserve memory
     lp_ac_package_data pTmp = (lp_ac_package_data)(av_malloc(sizeof(ac_package_data)));
+    memset(pTmp, 0, sizeof(ac_package_data));    
 
     //Set package data
     pTmp->package.stream_index = Package.stream_index;
@@ -526,6 +521,7 @@ void* ac_create_video_decoder(lp_ac_instance pacInstance, lp_ac_stream_info info
   //Allocate memory for a new decoder instance
   lp_ac_video_decoder pDecoder;
   pDecoder = (lp_ac_video_decoder)(av_malloc(sizeof(ac_video_decoder)));
+  memset(pDecoder, 0, sizeof(ac_video_decoder));
 
   //Set a few properties
   pDecoder->decoder.pacInstance = pacInstance;
@@ -569,6 +565,7 @@ void* ac_create_audio_decoder(lp_ac_instance pacInstance, lp_ac_stream_info info
   //Allocate memory for a new decoder instance
   lp_ac_audio_decoder pDecoder;
   pDecoder = (lp_ac_audio_decoder)(av_malloc(sizeof(ac_audio_decoder)));
+  memset(pDecoder, 0, sizeof(ac_audio_decoder));  
 
   //Set a few properties
   pDecoder->decoder.pacInstance = pacInstance;
@@ -656,9 +653,8 @@ int ac_decode_audio_package(lp_ac_package pPackage, lp_ac_audio_decoder pDecoder
 
   //Initialize the buffer size
   pDecoder->decoder.buffer_size = 0;
-
+  
   while (pkt_tmp.size > 0) {
-
     //Set the size of bytes that can be written to the current size of the destination buffer
     int size = dest_buffer_size;
 
@@ -669,22 +665,21 @@ int ac_decode_audio_package(lp_ac_package pPackage, lp_ac_audio_decoder pDecoder
     );
 
     //If an error occured, skip the frame
-    if (len1 <= 0)
+    if (len1 < 0) {
       return 0;
-
-    if (size <= 0)
-      continue;
+    }
 
     //Increment the source buffer pointers
     pkt_tmp.size -= len1;
     pkt_tmp.data += len1;
 
+    if (size <= 0)
+      continue;    
+
     //Increment the destination buffer pointers
     dest_buffer_size -= size;
     dest_buffer_pos += size;
     pDecoder->decoder.buffer_size = dest_buffer_pos;
-
-    return 1;
   }
 
   return 1;

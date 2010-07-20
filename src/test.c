@@ -24,12 +24,13 @@ by your OS.
 
 #define _FILE_OFFSET_BITS 64
 
+#include "config.h"
 #include "acinerella.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 
-#ifdef __LINUX
+#if __PLATFORM == PLATFORM_LINUX
 #define O_BINARY 0
 #endif
 
@@ -88,7 +89,7 @@ int main(int argc, char *argv[]) {
   int audiofile;
 
   //Open a file for raw audio output
-#ifdef __LINUX
+#if __PLATFORM == PLATFORM_LINUX
   audiofile = open("acin_test.raw", O_WRONLY | O_CREAT, 0777);
 #else
   audiofile = open("acin_test.raw", O_WRONLY | O_CREAT | O_BINARY);
