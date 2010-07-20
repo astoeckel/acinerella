@@ -590,7 +590,7 @@ void* ac_create_audio_decoder(lp_ac_instance pacInstance, lp_ac_stream_info info
   //Initialize the buffers
   pDecoder->decoder.pBuffer = NULL; //av_malloc(AUDIO_BUFFER_BASE_SIZE);
   pDecoder->decoder.buffer_size = 0;
-  pDecoder->decoder.max_buffer_size = 0;
+  pDecoder->max_buffer_size = 0;
   
   //Reserve the temporary buffer which contains AVCODEC_MAX_AUDIO_FRAME_SIZE bytes
   pDecoder->tmp_buf = av_malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
