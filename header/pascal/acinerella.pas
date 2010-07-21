@@ -34,7 +34,7 @@ interface
 
 const
   {$IFDEF WIN32}
-    ac_dll = 'acinerella.dll';
+    ac_dll = 'libacinerella.dll';
   {$ELSE}
     {$IFDEF UNIX}
       ac_dll = 'libacinerella.so';
