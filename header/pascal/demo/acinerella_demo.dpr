@@ -7,7 +7,7 @@ program acinerella_demo;
 {$ENDIF}
 
 uses
-  {$IFDEF FPC}Interfaces,{$ENDIF}Windows, Forms, Graphics, Classes, SysUtils, acinerella;
+  {$IFDEF FPC}Interfaces,{$ENDIF}{$IFDEF WIN32}Windows,{$ENDIF}Forms, Graphics, Classes, SysUtils, acinerella;
 
 type
   TWAVHdr = packed Record

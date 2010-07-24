@@ -9,7 +9,7 @@
       </Flags>
       <MainUnit Value="0"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="0"/>
+      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -26,7 +26,7 @@
       <local>
         <FormatVersion Value="1"/>
         <CommandLineParams Value="&quot;I:\Dokumente und Einstellungen\Andreas\Eigene Dateien\Eigene Videos\bick_buck_bunny_low_res.ogg&quot;"/>
-        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <Units Count="3">
@@ -34,31 +34,29 @@
         <Filename Value="acinerella_demo.dpr"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="acinerella_demo"/>
-        <CursorPos X="10" Y="154"/>
-        <TopLine Value="149"/>
+        <CursorPos X="103" Y="10"/>
+        <TopLine Value="1"/>
         <EditorIndex Value="0"/>
-        <UsageCount Value="22"/>
+        <UsageCount Value="23"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="..\acinerella.pas"/>
         <UnitName Value="acinerella"/>
-        <CursorPos X="12" Y="124"/>
-        <TopLine Value="97"/>
-        <EditorIndex Value="2"/>
-        <UsageCount Value="11"/>
+        <CursorPos X="10" Y="36"/>
+        <TopLine Value="4"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="12"/>
         <Loaded Value="True"/>
       </Unit1>
       <Unit2>
-        <Filename Value="..\..\..\..\..\..\..\..\..\Programme\Lazarus\lcl\include\application.inc"/>
+        <Filename Value="..\..\..\..\..\..\..\Programme\Lazarus\lcl\include\application.inc"/>
         <CursorPos X="1" Y="345"/>
         <TopLine Value="310"/>
-        <EditorIndex Value="1"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit2>
     </Units>
-    <JumpHistory Count="20" HistoryIndex="19">
+    <JumpHistory Count="22" HistoryIndex="21">
       <Position1>
         <Filename Value="acinerella_demo.dpr"/>
         <Caret Line="34" Column="9" TopLine="14"/>
@@ -139,6 +137,14 @@
         <Filename Value="acinerella_demo.dpr"/>
         <Caret Line="179" Column="1" TopLine="158"/>
       </Position20>
+      <Position21>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="170" Column="41" TopLine="149"/>
+      </Position21>
+      <Position22>
+        <Filename Value="acinerella_demo.dpr"/>
+        <Caret Line="10" Column="103" TopLine="1"/>
+      </Position22>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>

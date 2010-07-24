@@ -29,7 +29,11 @@ interface
 {$IFDEF WIN32}
   {$ALIGN 8}
 {$ELSE}
-  {$ALIGN 4}
+  {$IFDEF CPU32}
+    {$ALIGN 4}
+  {$ELSE}
+    {$ALIGN 8}
+  {$ENDIF}
 {$ENDIF}
 
 const
