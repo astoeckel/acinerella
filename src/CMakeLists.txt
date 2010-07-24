@@ -1,3 +1,6 @@
+# Set the FFMpeg include path
+INCLUDE_DIRECTORIES(${FFMPEG_INCLUDE_DIR})
+
 # Write the platform decision code
 IF(UNIX)
   SET(__PLATFORM PLATFORM_LINUX)
@@ -18,3 +21,4 @@ ENDIF (UNIX)
 # Add the test application
 ADD_EXECUTABLE(test test.c)
 TARGET_LINK_LIBRARIES(test acinerella)
+

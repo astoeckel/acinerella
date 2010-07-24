@@ -18,11 +18,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "acinerella.h"
-#include <libavformat/avformat.h>
-#include <libavformat/avio.h>
-#include <libavcodec/avcodec.h>
-#include <libavutil/avutil.h>
-#include <libswscale/swscale.h>
+#include <avformat.h>
+#include <avio.h>
+#include <avcodec.h>
+#include <avutil.h>
+#include <swscale.h>
 #include <string.h>
 
 #define AUDIO_BUFFER_BASE_SIZE AVCODEC_MAX_AUDIO_FRAME_SIZE
