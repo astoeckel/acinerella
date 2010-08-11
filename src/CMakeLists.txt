@@ -9,6 +9,8 @@ ELSE()
 ENDIF()
 CONFIGURE_FILE(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
+#SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g3 -O0")
+
 # Add the acinerella library
 ADD_LIBRARY(acinerella SHARED acinerella.c)
 

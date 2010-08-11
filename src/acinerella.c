@@ -329,19 +329,16 @@ int CALL_CONVT ac_open(
       ((lp_ac_data)pacInstance)->buffer,
       AC_BUFSIZE, 0, pacInstance, io_read, 0, io_seek);
   }
-
-  if(av_open_input_stream(&(((lp_ac_data)pacInstance)->pFormatCtx),
-    &(((lp_ac_data)pacInstance)->io), "", fmt, NULL) < 0)
+  
+  //Open the given input stream (the io structure) with the given format of the stream
+  //(fmt) and write the pointer to the new format context to the pFormatCtx variable
+  if (av_open_input_stream(
+       &(((lp_ac_data)pacInstance)->pFormatCtx),
+       &(((lp_ac_data)pacInstance)->io), "", fmt, NULL) < 0)
   {
     return -1;
   }
 
-/*  if(av_open_input_file(&(((lp_ac_data)pacInstance)->pFormatCtx), "test.flac",
-    NULL, 0, NULL) < 0)
-  {
-    return -1;
-  }*/
-  
   //Retrieve stream information
   AVFormatContext *ctx = ((lp_ac_data)pacInstance)->pFormatCtx;
   if(av_find_stream_info(ctx) >= 0) {
@@ -376,14 +373,14 @@ void CALL_CONVT ac_close(lp_ac_instance pacInstance) {
     }
 
     av_close_input_stream(((lp_ac_data)(pacInstance))->pFormatCtx);
-    pacInstance->opened = 0;
-
-    /*
-    Auto freed by av_close_input_stream
-    if (((lp_ac_data)(pacInstance))->buffer) {
+    pacInstance->opened = 0;    
+    
+    //If the seek proc has not been specified, the input buffer is not automatically
+    //freed, as ffmpeg didn't get the original pointer to the buffer
+    if (!((lp_ac_data)(pacInstance))->seek_proc &&
+         ((lp_ac_data)(pacInstance))->buffer) {
       av_free(((lp_ac_data)(pacInstance))->buffer);
-    }*/
-
+    }
   }
 }
 
