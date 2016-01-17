@@ -1,6 +1,8 @@
 # Set the FFMpeg include path
 INCLUDE_DIRECTORIES(${FFMPEG_INCLUDE_DIR})
 
+SET(CMAKE_C_STANDARD 11)
+
 # Write the platform decision code
 IF(UNIX)
   SET(__PLATFORM PLATFORM_LINUX)
@@ -9,10 +11,8 @@ ELSE()
 ENDIF()
 CONFIGURE_FILE(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 
-#SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g3 -O0")
-
 # Add the acinerella library
-ADD_LIBRARY(acinerella SHARED acinerella.c)
+ADD_LIBRARY(acinerella SHARED acinerella.c acinerella.h)
 
 IF (UNIX)
   TARGET_LINK_LIBRARIES(acinerella avformat avcodec avutil swscale pthread z m)
@@ -21,6 +21,6 @@ ELSE (UNIX)
 ENDIF (UNIX)
 
 # Add the test application
-ADD_EXECUTABLE(test test.c)
-TARGET_LINK_LIBRARIES(test acinerella)
-
+ADD_EXECUTABLE(demo demo.c)
+TARGET_LINK_LIBRARIES(demo acinerella)
+INSTALL(TARGETS acinerella LIBRARY DESTINATION lib ARCHIVE DESTINATION lib)
