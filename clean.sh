@@ -1,13 +1,7 @@
-#/bin/sh
-find . -name "backup" -exec rm -R {} \;
-find . -name "CMakeFiles" -exec rm -R {} \;
-find . -name "Makefile" -exec rm -R {} \;
-find . -name "*.ppu" -exec rm -R {} \;
-find . -name "*.ppm" -exec rm -R {} \;
-find . -name "*.raw" -exec rm -R {} \;
-find . -name "*.wav" -exec rm -R {} \;
-find . -name "*.o" -exec rm -R {} \;
-find . -name "cmake_install.cmake" -exec rm -R {} \;
+#!/bin/sh
 
-rm -f src/config.h
+find build/ -depth -mindepth 1 \( ! -name ".git_ignore" \) -print -delete
 
+rm -Rf CMakeFiles
+
+find -depth \( \( -name "*.o" -o -name "*.ppu" -o -name "*.rst" -o -name "*.aux" -o -name "*.snm" -o -name "*.out" -o -name "*.toc" -o -name "*.nav" -o -name "*.log" -o -name "*.backup" -o -name "*.bbl" -o -name "*.blg" -o -name "*~" -o -name "CMakeCache.txt" \) -a \! \( -wholename "*.git/*" -o -wholename "*.svn" \) \) -delete -print
