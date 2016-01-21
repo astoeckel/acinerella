@@ -213,6 +213,7 @@ lp_ac_proberesult CALL_CONVT ac_probe_input_buffer(uint8_t *buf, int bufsize,
 	ac_init_ffmpeg();
 
 	// Set the filename
+	pd.mime_type = "";
 	pd.filename = "";
 	if (filename) {
 		pd.filename = filename;
