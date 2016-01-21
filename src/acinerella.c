@@ -696,24 +696,27 @@ error:
 lp_ac_decoder CALL_CONVT ac_create_decoder(lp_ac_instance pacInstance, int nb)
 {
 	// Get information about the chosen data stream and create an decoder that
-	// can
-	// handle this kind of stream.
+	// can handle this kind of stream.
 	ac_stream_info info;
 	ac_get_stream_info(pacInstance, nb, &info);
 
-	lp_ac_decoder result;
+	lp_ac_decoder_data result = NULL;
 
 	if (info.stream_type == AC_STREAM_TYPE_VIDEO) {
-		result = ac_create_video_decoder(pacInstance, &info, nb);
+		result =
+		    (lp_ac_decoder_data)ac_create_video_decoder(pacInstance, &info, nb);
 	} else if (info.stream_type == AC_STREAM_TYPE_AUDIO) {
-		result = ac_create_audio_decoder(pacInstance, &info, nb);
+		result =
+		    (lp_ac_decoder_data)ac_create_audio_decoder(pacInstance, &info, nb);
 	}
 
-	result->timecode = 0;
-	((lp_ac_decoder_data)result)->last_timecode = 0;
-	((lp_ac_decoder_data)result)->sought = 1;
+	if (result) {
+		result->decoder.timecode = 0;
+		result->last_timecode = 0;
+		result->sought = 1;
+	}
 
-	return result;
+	return (lp_ac_decoder)result;
 }
 
 int ac_decode_video_package(lp_ac_package pPackage,
