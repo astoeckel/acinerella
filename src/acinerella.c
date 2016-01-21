@@ -744,10 +744,11 @@ int ac_decode_audio_package(lp_ac_package pPackage,
 		if (pDecoder->own_buffer_size != buffer_size) {
 			pDecoder->decoder.pBuffer =
 			    av_realloc(pDecoder->decoder.pBuffer, buffer_size);
-			swr_convert(
-			    pDecoder->pSwrCtx, &(pDecoder->decoder.pBuffer), sample_count,
-			    (const uint8_t **)(pDecoder->pFrame->data), sample_count);
+			pDecoder->own_buffer_size = buffer_size;
 		}
+		swr_convert(
+		    pDecoder->pSwrCtx, &(pDecoder->decoder.pBuffer), sample_count,
+		    (const uint8_t **)(pDecoder->pFrame->data), sample_count);
 	} else {
 		// No conversion needs to be done, simply set the buffer pointer
 		pDecoder->decoder.pBuffer = pDecoder->pFrame->data[0];
