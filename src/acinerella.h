@@ -28,8 +28,6 @@
 #define CALL_CONVT
 #endif
 
-typedef long long int64;
-
 /**
  * Defines the type of an Acinerella media stream. Currently only video and
  * audio streams are supported, subtitle and data streams will be marked as
