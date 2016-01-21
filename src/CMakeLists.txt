@@ -13,9 +13,9 @@ CONFIGURE_FILE(config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
 ADD_LIBRARY(acinerella SHARED acinerella.c acinerella.h)
 
 IF (UNIX)
-  TARGET_LINK_LIBRARIES(acinerella avformat avcodec avutil swscale pthread z m)
+  TARGET_LINK_LIBRARIES(acinerella ${FFMPEG_LIBRARIES} pthread z m)
 ELSE (UNIX)
-  TARGET_LINK_LIBRARIES(acinerella avformat avcodec avutil swscale pthread z m ws2_32)
+  TARGET_LINK_LIBRARIES(acinerella ${FFMPEG_LIBRARIES} pthread z m ws2_32)
 ENDIF (UNIX)
 
 # Add the test application
