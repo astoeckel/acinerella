@@ -151,10 +151,13 @@ lp_ac_instance CALL_CONVT ac_init(void)
 
 void CALL_CONVT ac_free(lp_ac_instance pacInstance)
 {
-	// Close the decoder. If it is already closed, this won't be a problem as
-	// ac_close checks the streams state
-	ac_close(pacInstance);
-	av_free((lp_ac_data)pacInstance);
+	if (pacInstance) {
+		// Close the decoder. If it is already closed, this won't be a problem
+		// as
+		// ac_close checks the streams state
+		ac_close(pacInstance);
+		av_free((lp_ac_data)pacInstance);
+	}
 }
 
 static int io_read(void *opaque, uint8_t *buf, int buf_size)
@@ -535,10 +538,12 @@ lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance)
 // Frees the currently loaded package
 void CALL_CONVT ac_free_package(lp_ac_package pPackage)
 {
-	lp_ac_package_data self = (lp_ac_package)pPackage;
-	av_free_packet(self->pPack);
-	av_free(self->pPack);
-	av_free(self);
+	if (pPackage) {
+		lp_ac_package_data self = (lp_ac_package_data)pPackage;
+		av_free_packet(self->pPack);
+		av_free(self->pPack);
+		av_free(self);
+	}
 }
 
 //
@@ -827,34 +832,40 @@ int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos)
 // Free video decoder
 void ac_free_video_decoder(lp_ac_video_decoder pDecoder)
 {
-	av_free(pDecoder->pFrame);
-	av_free(pDecoder->pFrameRGB);
-	sws_freeContext(pDecoder->pSwsCtx);
-	avcodec_close(pDecoder->pCodecCtx);
-	av_free(pDecoder->decoder.pBuffer);
-	av_free(pDecoder);
+	if (pDecoder) {
+		av_free(pDecoder->pFrame);
+		av_free(pDecoder->pFrameRGB);
+		sws_freeContext(pDecoder->pSwsCtx);
+		avcodec_close(pDecoder->pCodecCtx);
+		av_free(pDecoder->decoder.pBuffer);
+		av_free(pDecoder);
+	}
 }
 
 // Free video decoder
 void ac_free_audio_decoder(lp_ac_audio_decoder pDecoder)
 {
-	avcodec_close(pDecoder->pCodecCtx);
-	av_frame_free(&(pDecoder->pFrame));
-	if (pDecoder->pSwrCtx) {
-		swr_free(&(pDecoder->pSwrCtx));
+	if (pDecoder) {
+		avcodec_close(pDecoder->pCodecCtx);
+		av_frame_free(&(pDecoder->pFrame));
+		if (pDecoder->pSwrCtx) {
+			swr_free(&(pDecoder->pSwrCtx));
+		}
+		if (pDecoder->own_buffer_size > 0) {
+			av_free(pDecoder->decoder.pBuffer);
+		}
+		av_free(pDecoder);
 	}
-	if (pDecoder->own_buffer_size > 0) {
-		av_free(pDecoder->decoder.pBuffer);
-	}
-	av_free(pDecoder);
 }
 
 void CALL_CONVT ac_free_decoder(lp_ac_decoder pDecoder)
 {
-	if (pDecoder->type == AC_DECODER_TYPE_VIDEO) {
-		ac_free_video_decoder((lp_ac_video_decoder)pDecoder);
-	} else if (pDecoder->type == AC_DECODER_TYPE_AUDIO) {
-		ac_free_audio_decoder((lp_ac_audio_decoder)pDecoder);
+	if (pDecoder) {
+		if (pDecoder->type == AC_DECODER_TYPE_VIDEO) {
+			ac_free_video_decoder((lp_ac_video_decoder)pDecoder);
+		} else if (pDecoder->type == AC_DECODER_TYPE_AUDIO) {
+			ac_free_audio_decoder((lp_ac_audio_decoder)pDecoder);
+		}
 	}
 }
 
