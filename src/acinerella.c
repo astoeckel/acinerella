@@ -35,6 +35,19 @@
 #define PROBE_BUF_MIN 1024
 #define PROBE_BUF_MAX (1 << 20)
 
+#define ERR(E)          \
+	{                   \
+		if (!(E)) {     \
+			goto error; \
+		}               \
+	}
+#define AV_ERR(E)       \
+	{                   \
+		if ((E) < 0) {  \
+			goto error; \
+		}               \
+	}
+
 struct _ac_data {
 	ac_instance instance;
 
@@ -101,6 +114,13 @@ struct _ac_package_data {
 
 typedef struct _ac_package_data ac_package_data;
 typedef ac_package_data *lp_ac_package_data;
+
+//
+//--- Forward declarations ---
+//
+
+void ac_free_video_decoder(lp_ac_video_decoder pDecoder);
+void ac_free_audio_decoder(lp_ac_audio_decoder pDecoder);
 
 //
 //--- Initialization and Stream opening---
@@ -621,8 +641,8 @@ void *ac_create_audio_decoder(lp_ac_instance pacInstance,
 {
 	// Allocate memory for a new decoder instance
 	lp_ac_data self = ((lp_ac_data)(pacInstance));
-	lp_ac_audio_decoder pDecoder;
-	pDecoder = (lp_ac_audio_decoder)(av_malloc(sizeof(ac_audio_decoder)));
+	lp_ac_audio_decoder pDecoder = NULL;
+	ERR(pDecoder = (lp_ac_audio_decoder)(av_malloc(sizeof(ac_audio_decoder))));
 	memset(pDecoder, 0, sizeof(ac_audio_decoder));
 
 	// Set a few properties
@@ -636,19 +656,15 @@ void *ac_create_audio_decoder(lp_ac_instance pacInstance,
 	pDecoder->pCodecCtx = pCodecCtx;
 
 	// Find correspondenting codec
-	if (!(pDecoder->pCodec = avcodec_find_decoder(pCodecCtx->codec_id))) {
-		return NULL;
-	}
+	ERR(pDecoder->pCodec = avcodec_find_decoder(pCodecCtx->codec_id));
 
 	// Open codec
-	if (avcodec_open2(pCodecCtx, pDecoder->pCodec, NULL) < 0) {
-		return NULL;
-	}
+	AV_ERR(avcodec_open2(pCodecCtx, pDecoder->pCodec, NULL));
 
 	// Initialize the buffers
 	pDecoder->decoder.pBuffer = NULL;  // av_malloc(AUDIO_BUFFER_BASE_SIZE);
 	pDecoder->decoder.buffer_size = 0;
-	pDecoder->pFrame = av_frame_alloc();
+	ERR(pDecoder->pFrame = av_frame_alloc());
 
 	// Fetch audio format, rate and channel layout -- under some circumstances,
 	// the layout is not known to the decoder, then a channel layout is guessed
@@ -669,9 +685,13 @@ void *ac_create_audio_decoder(lp_ac_instance pacInstance,
 		}
 		pDecoder->pSwrCtx = swr_alloc_set_opts(NULL, layout, out_fmt, rate,
 		                                       layout, fmt, rate, 0, NULL);
-		swr_init(pDecoder->pSwrCtx);
+		AV_ERR(swr_init(pDecoder->pSwrCtx));
 	}
 	return (void *)pDecoder;
+
+error:
+	ac_free_audio_decoder(pDecoder);
+	return NULL;
 }
 
 lp_ac_decoder CALL_CONVT ac_create_decoder(lp_ac_instance pacInstance, int nb)
