@@ -259,8 +259,7 @@ AVInputFormat *ac_probe_input_stream(void *sender, ac_read_callback read_proc,
 		int score = AVPROBE_SCORE_MAX / 4;
 
 		// Allocate some memory for the current probe buffer
-		void *tmp_buf =
-		    av_malloc(probe_size);  // Unaligned memory would also be ok here
+		uint8_t *tmp_buf = av_malloc(probe_size);
 		memset(tmp_buf, 0, probe_size);
 
 		// Copy the old data to the new buffer
@@ -271,10 +270,10 @@ AVInputFormat *ac_probe_input_stream(void *sender, ac_read_callback read_proc,
 		}
 
 		// Read the new data
-		void *write_ptr = tmp_buf + *buf_read;
+		uint8_t *write_ptr = tmp_buf + *buf_read;
 		int read_size = probe_size - *buf_read;
 		int size;
-		if (size = read_proc(sender, write_ptr, read_size) < read_size) {
+		if ((size = read_proc(sender, write_ptr, read_size)) < read_size) {
 			last_iteration = 1;
 			probe_size = *buf_read + size;
 		}

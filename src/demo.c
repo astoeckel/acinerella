@@ -67,11 +67,10 @@ int CALL_CONVT close_callback(void *sender)
 	return close(source);
 }
 
-void SaveFrame(char *buffer, int width, int height, int iFrame)
+void SaveFrame(uint8_t *buffer, int width, int height, int iFrame)
 {
 	FILE *pFile;
 	char szFilename[32];
-	int y;
 
 	// Open file
 	sprintf(szFilename, "frame%05d.ppm", iFrame);
@@ -125,7 +124,7 @@ int main(int argc, char *argv[])
 	printf("Count of Datastreams:  %d \n", pData->stream_count);
 
 	// Print file info
-	printf("File duration: %lld \n", pData->info.duration);
+	printf("File duration: %ld \n", pData->info.duration);
 	printf("Title: %s \n", pData->info.title);
 	printf("Author: %s \n", pData->info.author);
 	printf("Album: %s \n", pData->info.album);
@@ -178,6 +177,8 @@ int main(int argc, char *argv[])
 				if (pAudioDecoder == NULL) {
 					pAudioDecoder = ac_create_decoder(pData, i);
 				}
+				break;
+			default:
 				break;
 		}
 	}
