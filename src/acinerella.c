@@ -235,7 +235,7 @@ lp_ac_proberesult CALL_CONVT ac_probe_input_buffer(uint8_t *buf, int bufsize,
 	// Initialize FFMpeg libraries
 	ac_init_ffmpeg();
 
-	// Set the filename
+	// Set the filename and mime_type
 	pd.mime_type = "";
 	pd.filename = "";
 	if (filename) {
@@ -549,10 +549,9 @@ lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance)
 		}
 		pkt->package.stream_index = pkt->pPack->stream_index;
 		return (lp_ac_package)(pkt);
-	} else {
-		ac_free_package((lp_ac_package)pkt);
-		return NULL;
 	}
+	ac_free_package((lp_ac_package)pkt);
+	return NULL;
 }
 
 // Frees the currently loaded package
@@ -773,9 +772,9 @@ int ac_decode_audio_package(lp_ac_package pPackage,
 			    av_realloc(pDecoder->decoder.pBuffer, buffer_size);
 			pDecoder->own_buffer_size = buffer_size;
 		}
-		swr_convert(
-		    pDecoder->pSwrCtx, &(pDecoder->decoder.pBuffer), sample_count,
-		    (const uint8_t **)(pDecoder->pFrame->data), sample_count);
+		swr_convert(pDecoder->pSwrCtx, &(pDecoder->decoder.pBuffer),
+		            sample_count, (const uint8_t **)(pDecoder->pFrame->data),
+		            sample_count);
 	} else {
 		// No conversion needs to be done, simply set the buffer pointer
 		pDecoder->decoder.pBuffer = pDecoder->pFrame->data[0];
