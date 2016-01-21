@@ -27,7 +27,8 @@ Features
 Usage
 -----
 
-Under Linux, simply run the following commands to compile Acinerella:
+Make sure you have a recent version of FFMpeg and CMake installed. Under Linux, building Acinerella is as simple as
+runing the following commands:
 
 ```bash
 git clone https://github.com/astoeckel/acinerella
