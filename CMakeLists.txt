@@ -1,6 +1,26 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
 PROJECT(acinerella)
 
+SET(CMAKE_C_STANDARD 11)
+
+# Set a default build type
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
+endif()
+
+# Enable all warnings on MSVC and GCC/Clang/Intel
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
+	if(CMAKE_C_FLAGS MATCHES "/W[0-4]")
+		string(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+	else()
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W4")
+	endif()
+elseif(("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU") OR
+		("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang") OR
+		("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel"))
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic")
+endif()
+
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
 SET(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 SET(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
