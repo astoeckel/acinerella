@@ -15,14 +15,21 @@ format.
 Features
 --------
 
-* **Easy to use API**
-  Acinerella does all the "FFMpeg stuff" for you. Decoding videos was never easier.
-* **A single compact library**
-  FFMpeg can be staticaly linked into Acinerella
-* **Easy to use with other programming languages**
-  The Acinerella header file has only about 120 lines and is easy to port to other programming languages. A pascal header exists.
-* **Cross plattform**
-  Acinerella and FFMpeg are cross-plattform - A Win32 package is available.
+**Easy to use API**
+
+Acinerella does all the "FFMpeg stuff" for you. Decoding videos was never easier.
+
+**A single compact library**
+
+FFMpeg can be staticaly linked into Acinerella
+
+**Easy to use with other programming languages**
+
+The Acinerella header file has only about 120 lines and is easy to port to other programming languages. A pascal header exists.
+
+**Cross plattform**
+
+Acinerella and FFMpeg are cross-plattform - A Win32 package is available.
 
 Usage
 -----
