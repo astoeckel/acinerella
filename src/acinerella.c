@@ -643,10 +643,17 @@ void *ac_create_audio_decoder(lp_ac_instance pacInstance,
 	pDecoder->decoder.buffer_size = 0;
 	pDecoder->pFrame = av_frame_alloc();
 
-	// Initialize libswresample if needed
+	// Fetch audio format, rate and channel layout -- under some circumstances,
+	// the layout is not known to the decoder, then a channel layout is guessed
+	// from the channel count.
 	const enum AVSampleFormat fmt = pCodecCtx->sample_fmt;
-	const int64_t layout = pCodecCtx->channel_layout;
 	const int rate = pCodecCtx->sample_rate;
+	const int64_t layout =
+	    pCodecCtx->channel_layout
+	        ? pCodecCtx->channel_layout
+	        : av_get_default_channel_layout(pCodecCtx->channels);
+
+	// Initialize libswresample if needed
 	if (av_sample_fmt_is_planar(fmt) || (fmt == AV_SAMPLE_FMT_S32) ||
 	    (fmt == AV_SAMPLE_FMT_DBL)) {
 		enum AVSampleFormat out_fmt = av_get_packed_sample_fmt(fmt);
