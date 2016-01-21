@@ -43,6 +43,13 @@ cd acinerella && mkdir build && cd build;
 cmake .. && make
 ```
 
+Old versions
+------------
+
+Unsupported old binary versions of Acinerella may be found at
+
+https://sourceforge.net/projects/acinerella/files/
+
 License
 -------
 
