@@ -18,10 +18,8 @@
 /*
 WARNING:
 Depending on the implementation of libc, reading of files larger than 1GB might
-not work.
-This is not a problem with Acinerella and can be solved by using stream objects
-delivered
-by your OS.
+not work. This is not a problem with Acinerella and can be solved by using
+stream objects delivered by your OS.
 */
 
 #define _FILE_OFFSET_BITS 64
