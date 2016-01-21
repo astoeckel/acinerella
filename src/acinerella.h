@@ -38,8 +38,8 @@ typedef long long int64;
 typedef enum _ac_stream_type {
 	/**
 	 * The type of the media stream is not known. This kind of stream can not be
-     * decoded.
-     */
+	 * decoded.
+	 */
 	AC_STREAM_TYPE_VIDEO = 0,
 
 	/**
@@ -349,8 +349,8 @@ extern void CALL_CONVT ac_free(lp_ac_instance pacInstance);
  * media file is opened. May be NULL.
  * @param seek_proc specifies the callback function that is called, when the
  * ffmpeg decoder wants to seek in the file. May be NULL.
- * @param close_proc specifies the callback function that is called when the media
- * file is closed. May be NULL.
+ * @param close_proc specifies the callback function that is called when the
+ * media file is closed. May be NULL.
  * @param proberesult is a pointer at a structure previously returned by
  * ac_probe_input_buffer. May be NULL.
  */
@@ -373,11 +373,19 @@ extern void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
 
 /**
  * Reads a package from an opened media file.
+ *
+ * @param pacInstance is the Acinerella instance from which the data should be
+ * read.
+ * @return a pointer at a ac_package structure or NULL on failure. The returned
+ * pointer must be freed with ac_free_package after use.
  */
 extern lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance);
 
 /**
  * Frees a package that has been read.
+ *
+ * @param pPackage is a pointer at the ac_package that should be freed. May be
+ * NULL in which case no operation is performed.
  */
 extern void CALL_CONVT ac_free_package(lp_ac_package pPackage);
 
@@ -394,11 +402,14 @@ extern lp_ac_decoder CALL_CONVT
 extern void CALL_CONVT ac_free_decoder(lp_ac_decoder pDecoder);
 
 /**
- * Decodes a package using the specified decoder. The decodec data is stored in
+ * Decodes a package using the specified decoder. The decoded data is stored in
  * the "buffer" property of the decoder.
  *
- * @param pPackage is the package that should be decoded. It should previously
- * 
+ * @param pPackage is the package that should be decoded, previously read by the
+ * ac_read_package method.
+ * @param pDecoder is the decoder instance that should be used to decode the
+ * package -- use the stream index stored in the package to determine the
+ * correct decoder.
  */
 extern int CALL_CONVT
     ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder);
