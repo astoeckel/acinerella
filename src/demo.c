@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 
 // Open a file for raw audio output
 #if __PLATFORM == PLATFORM_LINUX
-	audiofile = open("acin_test.raw", O_WRONLY | O_CREAT, 0777);
+	audiofile = open("acin_test.raw", O_WRONLY | O_CREAT | O_TRUNC, 0777);
 #else
 	audiofile = open("acin_test.raw", O_WRONLY | O_CREAT | O_BINARY);
 #endif
