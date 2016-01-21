@@ -535,8 +535,10 @@ lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance)
 // Frees the currently loaded package
 void CALL_CONVT ac_free_package(lp_ac_package pPackage)
 {
-	av_free(((lp_ac_package_data)pPackage)->pPack);
-	av_free(pPackage);
+	lp_ac_package_data self = (lp_ac_package)pPackage;
+	av_free_packet(self->pPack);
+	av_free(self->pPack);
+	av_free(self);
 }
 
 //
