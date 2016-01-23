@@ -355,7 +355,9 @@ int CALL_CONVT ac_open(lp_ac_instance pacInstance, void *sender,
 
 	// Call the file open proc
 	if (self->open_proc != NULL) {
-		self->open_proc(sender);
+		if (self->open_proc(sender) < 0) {
+			return -1;
+		}
 	}
 
 	AVInputFormat *fmt = NULL;
