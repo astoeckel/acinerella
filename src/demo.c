@@ -53,8 +53,10 @@ int64_t CALL_CONVT seek_callback(void *sender, int64_t pos, int whence)
 int CALL_CONVT open_callback(void *sender)
 {
 	source = open(filename, O_RDONLY | O_BINARY);
-	if (source < 0)
-		perror("Acinerella Test");
+	if (source < 0) {
+		perror("Open");
+		return -1;
+	}
 	printf("Open '%s' \n", filename);
 	return 0;
 }
@@ -95,6 +97,11 @@ int main(int argc, char *argv[])
 	int framenb = 0;
 	int audiofile;
 
+	if (argc != 2) {
+		printf("Usage: %s <MEDIA FILE>\n", argv[0]);
+		exit(1);
+	}
+
 // Open a file for raw audio output
 #if __PLATFORM == PLATFORM_LINUX
 	audiofile = open("acin_test.raw", O_WRONLY | O_CREAT | O_TRUNC, 0777);
@@ -115,8 +122,11 @@ int main(int argc, char *argv[])
 	// Open the video/audio file by passing the function pointers to the open,
 	// read and close callbacks to Acinerella.
 	// Only the read callback is neccessary, all other callbacks may be 0
-	ac_open(pData, 0, &open_callback, &read_callback, &seek_callback,
-	        &close_callback, NULL);
+	if (ac_open(pData, 0, &open_callback, &read_callback, &seek_callback,
+	            &close_callback, NULL) < 0) {
+		printf("Error opening media file!\n");
+		exit(1);
+	}
 
 	// Display the count of the found data streams.
 	printf("Count of Datastreams:  %d \n", pData->stream_count);
