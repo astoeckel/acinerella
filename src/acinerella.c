@@ -332,6 +332,41 @@ static void cpymetadatai(const AVFormatContext *ctx, const char *key, int *tar)
 	*tar = atoi(buf);
 }
 
+static int finalize_open(lp_ac_instance pacInstance)
+{
+	lp_ac_data self = ((lp_ac_data)pacInstance);
+
+	// Assume the stream is opened
+	pacInstance->opened = 1;
+
+	// Retrieve stream information
+	AVFormatContext *ctx = self->pFormatCtx;
+	if (avformat_find_stream_info(ctx, NULL) >= 0) {
+		cpymetadata(ctx, "title", pacInstance->info.title, 512);
+		cpymetadata(ctx, "artist", pacInstance->info.author, 512);
+		cpymetadata(ctx, "copyright", pacInstance->info.copyright, 512);
+		cpymetadata(ctx, "comment", pacInstance->info.comment, 512);
+		cpymetadata(ctx, "album", pacInstance->info.album, 512);
+		cpymetadata(ctx, "genre", pacInstance->info.genre, 32);
+		cpymetadatai(ctx, "year", &(pacInstance->info.year));
+		cpymetadatai(ctx, "track", &(pacInstance->info.track));
+		pacInstance->info.bitrate = ctx->bit_rate;
+		pacInstance->info.duration = ctx->duration * 1000 / AV_TIME_BASE;
+	} else {
+		ac_close(pacInstance);
+		return -1;
+	}
+
+	// Set some information in the instance variable
+	pacInstance->stream_count =
+	    ((lp_ac_data)pacInstance)->pFormatCtx->nb_streams;
+	if (pacInstance->stream_count <= 0) {
+		ac_close(pacInstance);
+		return -1;
+	}
+	return 0;
+}
+
 int CALL_CONVT ac_open(lp_ac_instance pacInstance, void *sender,
                        ac_openclose_callback open_proc,
                        ac_read_callback read_proc, ac_seek_callback seek_proc,
@@ -392,30 +427,26 @@ int CALL_CONVT ac_open(lp_ac_instance pacInstance, void *sender,
 		return -1;
 	}
 
-	// Retrieve stream information
-	AVFormatContext *ctx = self->pFormatCtx;
-	if (avformat_find_stream_info(ctx, NULL) >= 0) {
-		cpymetadata(ctx, "title", pacInstance->info.title, 512);
-		cpymetadata(ctx, "artist", pacInstance->info.author, 512);
-		cpymetadata(ctx, "copyright", pacInstance->info.copyright, 512);
-		cpymetadata(ctx, "comment", pacInstance->info.comment, 512);
-		cpymetadata(ctx, "album", pacInstance->info.album, 512);
-		cpymetadata(ctx, "genre", pacInstance->info.genre, 32);
-		cpymetadatai(ctx, "year", &(pacInstance->info.year));
-		cpymetadatai(ctx, "track", &(pacInstance->info.track));
-		pacInstance->info.bitrate = ctx->bit_rate;
-		pacInstance->info.duration = ctx->duration * 1000 / AV_TIME_BASE;
-	} else {
+	return finalize_open(pacInstance);
+}
+
+int CALL_CONVT ac_open_file(lp_ac_instance pacInstance, const char *filename)
+{
+	// Instance cannot be opened twice!
+	if (pacInstance->opened) {
+		return -1;
+	}
+
+	// Reference at the underlying lp_ac_data instance
+	lp_ac_data self = ((lp_ac_data)pacInstance);
+
+	self->pFormatCtx = NULL;
+	if (avformat_open_input(&(self->pFormatCtx), filename, NULL, NULL) < 0) {
 		ac_close(pacInstance);
 		return -1;
 	}
 
-	// Set some information in the instance variable
-	pacInstance->stream_count =
-	    ((lp_ac_data)pacInstance)->pFormatCtx->nb_streams;
-	pacInstance->opened = pacInstance->stream_count > 0;
-
-	return 0;
+	return finalize_open(pacInstance);
 }
 
 void CALL_CONVT ac_close(lp_ac_instance pacInstance)
@@ -439,6 +470,12 @@ void CALL_CONVT ac_close(lp_ac_instance pacInstance)
 	self->buffer = NULL;
 	self->probe_buffer = NULL;
 	self->pIo = NULL;
+	self->pFormatCtx = NULL;
+	self->sender = NULL;
+	self->open_proc = NULL;
+	self->read_proc = NULL;
+	self->seek_proc = NULL;
+	self->close_proc = NULL;
 }
 
 void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,

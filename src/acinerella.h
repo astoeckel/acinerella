@@ -337,7 +337,7 @@ extern lp_ac_instance CALL_CONVT ac_init(void);
 extern void CALL_CONVT ac_free(lp_ac_instance pacInstance);
 
 /**
- * Opens a media file.
+ * Opens a media stream.
  *
  * @param inst specifies the Acinerella Instance the stream should be opened
  * for.
@@ -357,6 +357,16 @@ extern int CALL_CONVT
             ac_openclose_callback open_proc, ac_read_callback read_proc,
             ac_seek_callback seek_proc, ac_openclose_callback close_proc,
             lp_ac_proberesult proberesult);
+
+/**
+ * Opens a media file.
+ *
+ * @param inst specifies the Acinerella Instance the stream should be opened
+ * for.
+ * @param file is the name of the file that should be opened.
+ */
+extern int CALL_CONVT
+    ac_open_file(lp_ac_instance pacInstance, const char *filename);
 
 /**
  * Closes an opened media file.
