@@ -24,8 +24,10 @@
 
 #ifdef _WIN32
 #define CALL_CONVT __cdecl
+#define EXTERN extern __declspec(dllexport)
 #else
 #define CALL_CONVT
+#define EXTERN extern
 #endif
 
 /**
@@ -298,7 +300,7 @@ typedef void *lp_ac_proberesult;
  * Callback function used to ask the application to read data. Should return
  * the number of bytes read or an value smaller than zero if an error occured.
  */
-typedef int CALL_CONVT (*ac_read_callback)(void *sender, uint8_t *buf,
+typedef int (CALL_CONVT *ac_read_callback)(void *sender, uint8_t *buf,
                                            int size);
 
 /**
@@ -311,7 +313,7 @@ typedef int CALL_CONVT (*ac_read_callback)(void *sender, uint8_t *buf,
  * SEEK_CUR), or relative to the end of the file (2, SEEK_END)
  * @return 0 if the function succeeds, -1 on failure.
  */
-typedef int64_t CALL_CONVT (*ac_seek_callback)(void *sender, int64_t pos,
+typedef int64_t (CALL_CONVT *ac_seek_callback)(void *sender, int64_t pos,
                                                int whence);
 
 /**
@@ -319,7 +321,7 @@ typedef int64_t CALL_CONVT (*ac_seek_callback)(void *sender, int64_t pos,
  * is opened or closed. For example the file pointer should be resetted to zero
  * when the "open" function is called.
  */
-typedef int CALL_CONVT (*ac_openclose_callback)(void *sender);
+typedef int (CALL_CONVT *ac_openclose_callback)(void *sender);
 
 /**
  * Initializes an Acinerella instance.
@@ -327,14 +329,14 @@ typedef int CALL_CONVT (*ac_openclose_callback)(void *sender);
  * @return a pointer at an acinerella instance. The instance must be freed using
  * ac_free.
  */
-extern lp_ac_instance CALL_CONVT ac_init(void);
+EXTERN lp_ac_instance CALL_CONVT ac_init(void);
 
 /**
  * Frees a previously created Acinerella instance.
  *
  * @param pacInstance is the Acinerella instance that should be freed.
  */
-extern void CALL_CONVT ac_free(lp_ac_instance pacInstance);
+EXTERN void CALL_CONVT ac_free(lp_ac_instance pacInstance);
 
 /**
  * Opens a media stream.
@@ -352,7 +354,7 @@ extern void CALL_CONVT ac_free(lp_ac_instance pacInstance);
  * @param proberesult is a pointer at a structure previously returned by
  * ac_probe_input_buffer. May be NULL.
  */
-extern int CALL_CONVT
+EXTERN int CALL_CONVT
     ac_open(lp_ac_instance pacInstance, void *sender,
             ac_openclose_callback open_proc, ac_read_callback read_proc,
             ac_seek_callback seek_proc, ac_openclose_callback close_proc,
@@ -365,18 +367,18 @@ extern int CALL_CONVT
  * for.
  * @param file is the name of the file that should be opened.
  */
-extern int CALL_CONVT
+EXTERN int CALL_CONVT
     ac_open_file(lp_ac_instance pacInstance, const char *filename);
 
 /**
  * Closes an opened media file.
  */
-extern void CALL_CONVT ac_close(lp_ac_instance pacInstance);
+EXTERN void CALL_CONVT ac_close(lp_ac_instance pacInstance);
 
 /**
  * Stores information in "pInfo" about stream number "nb".
  */
-extern void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
+EXTERN void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
                                           lp_ac_stream_info info);
 
 /**
@@ -387,7 +389,7 @@ extern void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
  * @return a pointer at a ac_package structure or NULL on failure. The returned
  * pointer must be freed with ac_free_package after use.
  */
-extern lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance);
+EXTERN lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance);
 
 /**
  * Frees a package that has been read.
@@ -395,19 +397,19 @@ extern lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance);
  * @param pPackage is a pointer at the ac_package that should be freed. May be
  * NULL in which case no operation is performed.
  */
-extern void CALL_CONVT ac_free_package(lp_ac_package pPackage);
+EXTERN void CALL_CONVT ac_free_package(lp_ac_package pPackage);
 
 /**
  * Creates an decoder for the specified stream number. Returns NULL if no
  * decoder could be found.
  */
-extern lp_ac_decoder CALL_CONVT
+EXTERN lp_ac_decoder CALL_CONVT
     ac_create_decoder(lp_ac_instance pacInstance, int nb);
 
 /**
  * Frees an created decoder.
  */
-extern void CALL_CONVT ac_free_decoder(lp_ac_decoder pDecoder);
+EXTERN void CALL_CONVT ac_free_decoder(lp_ac_decoder pDecoder);
 
 /**
  * Decodes a package using the specified decoder. The decoded data is stored in
@@ -419,7 +421,7 @@ extern void CALL_CONVT ac_free_decoder(lp_ac_decoder pDecoder);
  * package -- use the stream index stored in the package to determine the
  * correct decoder.
  */
-extern int CALL_CONVT
+EXTERN int CALL_CONVT
     ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder);
 
 /**
@@ -430,7 +432,7 @@ extern int CALL_CONVT
  * backward. The target_pos paremeter is in milliseconds. Returns 1 if the
  * functions succeded.
  */
-extern int CALL_CONVT
+EXTERN int CALL_CONVT
     ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos);
 
 /**
@@ -447,7 +449,7 @@ extern int CALL_CONVT
  * @return either a pointer at an internal "probe result" or NULL if the buffer
  * contains no decodeable data.
  */
-extern lp_ac_proberesult CALL_CONVT
+EXTERN lp_ac_proberesult CALL_CONVT
     ac_probe_input_buffer(uint8_t *buf, int bufsize, char *filename,
                           int *score_max);
 
