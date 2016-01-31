@@ -27,7 +27,11 @@ stream objects delivered by your OS.
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#ifdef _WIN32
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
 
 #include "config.h"
 #include "acinerella.h"
