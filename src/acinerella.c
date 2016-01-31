@@ -612,15 +612,15 @@ enum PixelFormat convert_pix_format(ac_output_format fmt)
 {
 	switch (fmt) {
 		case AC_OUTPUT_RGB24:
-			return PIX_FMT_RGB24;
+			return AV_PIX_FMT_RGB24;
 		case AC_OUTPUT_BGR24:
-			return PIX_FMT_BGR24;
+			return AV_PIX_FMT_BGR24;
 		case AC_OUTPUT_RGBA32:
-			return PIX_FMT_RGB32;
+			return AV_PIX_FMT_RGB32;
 		case AC_OUTPUT_BGRA32:
-			return PIX_FMT_BGR32;
+			return AV_PIX_FMT_BGR32;
 	}
-	return PIX_FMT_RGB24;
+	return AV_PIX_FMT_RGB24;
 }
 
 // Init a video decoder
