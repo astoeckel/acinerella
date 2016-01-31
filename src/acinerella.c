@@ -295,8 +295,11 @@ AVInputFormat *ac_probe_input_stream(void *sender, ac_read_callback read_proc,
 		// Read the new data
 		uint8_t *write_ptr = tmp_buf + *buf_read;
 		int read_size = probe_size - *buf_read;
-		int size;
-		if ((size = read_proc(sender, write_ptr, read_size)) < read_size) {
+		int size = read_proc(sender, write_ptr, read_size);
+		if (size < 0) {
+			return fmt; // An error occurred, abort
+		}
+		if (size < read_size) {
 			last_iteration = 1;
 			probe_size = *buf_read + size;
 		}
