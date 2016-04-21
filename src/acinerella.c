@@ -611,7 +611,7 @@ void CALL_CONVT ac_free_package(lp_ac_package pPackage)
 //--- Decoder management ---
 //
 
-enum PixelFormat convert_pix_format(ac_output_format fmt)
+enum AVPixelFormat convert_pix_format(ac_output_format fmt)
 {
 	switch (fmt) {
 		case AC_OUTPUT_RGB24:
