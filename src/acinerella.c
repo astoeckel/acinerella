@@ -484,10 +484,16 @@ void CALL_CONVT ac_close(lp_ac_instance pacInstance)
 void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
                                    lp_ac_stream_info info)
 {
+	// Rese the stream info structure
+	memset(info, 0, sizeof(ac_stream_info));
+	info->stream_type = AC_STREAM_TYPE_UNKNOWN;
+
+	// Abort if the instance is not opened
 	if (!(pacInstance->opened)) {
 		return;
 	}
 
+	// Read the information
 	lp_ac_data self = ((lp_ac_data)pacInstance);
 	switch (self->pFormatCtx->streams[nb]->codec->codec_type) {
 		case AVMEDIA_TYPE_VIDEO:
@@ -563,8 +569,9 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
 			}
 
 			break;
-		default:
-			info->stream_type = AC_STREAM_TYPE_UNKNOWN;
+		default: {
+			// Do nothing
+		}
 	}
 }
 
