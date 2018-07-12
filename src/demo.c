@@ -25,17 +25,17 @@ stream objects delivered by your OS.
 
 #define _FILE_OFFSET_BITS 64
 
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #ifdef _WIN32
 #include <io.h>
 #else
 #include <unistd.h>
 #endif
 
-#include "config.h"
 #include "acinerella.h"
+#include "config.h"
 
 #if __PLATFORM == PLATFORM_LINUX
 #define O_BINARY 0
@@ -44,19 +44,16 @@ stream objects delivered by your OS.
 char *filename;
 int source;
 
-int CALL_CONVT read_callback(void *sender, uint8_t *buf, int size)
-{
+int CALL_CONVT read_callback(void *sender, uint8_t *buf, int size) {
 	return read(source, buf, size);
 }
 
-int64_t CALL_CONVT seek_callback(void *sender, int64_t pos, int whence)
-{
+int64_t CALL_CONVT seek_callback(void *sender, int64_t pos, int whence) {
 	int64_t res = lseek(source, pos, whence);
 	return res;
 }
 
-int CALL_CONVT open_callback(void *sender)
-{
+int CALL_CONVT open_callback(void *sender) {
 	source = open(filename, O_RDONLY | O_BINARY);
 	if (source < 0) {
 		perror("Open");
@@ -66,14 +63,12 @@ int CALL_CONVT open_callback(void *sender)
 	return 0;
 }
 
-int CALL_CONVT close_callback(void *sender)
-{
+int CALL_CONVT close_callback(void *sender) {
 	printf("Closing file\n");
 	return close(source);
 }
 
-void SaveFrame(uint8_t *buffer, int width, int height, int iFrame)
-{
+void SaveFrame(uint8_t *buffer, int width, int height, int iFrame) {
 	FILE *pFile;
 	char szFilename[32];
 
@@ -93,8 +88,7 @@ void SaveFrame(uint8_t *buffer, int width, int height, int iFrame)
 	fclose(pFile);
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	lp_ac_instance pData;
 	lp_ac_decoder pVideoDecoder = NULL;
 	lp_ac_decoder pAudioDecoder = NULL;
@@ -155,16 +149,16 @@ int main(int argc, char *argv[])
 			// Stream is a video stream - display information about it
 			case AC_STREAM_TYPE_VIDEO:
 				fprintf(stderr,
-				    "Stream is an video "
-				    "stream.\n--------------------------\n\n");
+				        "Stream is an video "
+				        "stream.\n--------------------------\n\n");
 				fprintf(stderr, " * Width            : %d\n",
-				       info.additional_info.video_info.frame_width);
+				        info.additional_info.video_info.frame_width);
 				fprintf(stderr, " * Height           : %d\n",
-				       info.additional_info.video_info.frame_height);
+				        info.additional_info.video_info.frame_height);
 				fprintf(stderr, " * Pixel aspect     : %f\n",
-				       info.additional_info.video_info.pixel_aspect);
+				        info.additional_info.video_info.pixel_aspect);
 				fprintf(stderr, " * Frames per second: %lf \n",
-				       info.additional_info.video_info.frames_per_second);
+				        info.additional_info.video_info.frames_per_second);
 
 				// If we don't have a video decoder now, try to create a video
 				// decoder for this video stream
@@ -176,14 +170,14 @@ int main(int argc, char *argv[])
 			// Stream is an audio stream - display information about it
 			case AC_STREAM_TYPE_AUDIO:
 				fprintf(stderr,
-				    "Stream is an audio "
-				    "stream.\n--------------------------\n\n");
+				        "Stream is an audio "
+				        "stream.\n--------------------------\n\n");
 				fprintf(stderr, "  * Samples per Second: %d\n",
-				       info.additional_info.audio_info.samples_per_second);
+				        info.additional_info.audio_info.samples_per_second);
 				fprintf(stderr, "  * Channel count     : %d\n",
-				       info.additional_info.audio_info.channel_count);
+				        info.additional_info.audio_info.channel_count);
 				fprintf(stderr, "  * Bit depth         : %d\n",
-				       info.additional_info.audio_info.bit_depth);
+				        info.additional_info.audio_info.bit_depth);
 
 				// If we don't have an audio decoder now, try to create an audio
 				// decoder for this audio stream
@@ -209,7 +203,8 @@ int main(int argc, char *argv[])
 	do {
 		pckt = ac_read_package(pData);
 		if (pckt != NULL) {
-			fprintf(stderr, "Found packet for stream %d.\r", pckt->stream_index);
+			fprintf(stderr, "Found packet for stream %d.\r",
+			        pckt->stream_index);
 
 			if ((pVideoDecoder != NULL) &&
 			    (pckt->stream_index == pVideoDecoder->stream_index)) {
