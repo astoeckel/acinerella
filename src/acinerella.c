@@ -797,13 +797,11 @@ int ac_decode_video_package(lp_ac_package pPackage,
 {
 	lp_ac_package_data pkt = ((lp_ac_package_data)pPackage);
 
-	int finished;
-	if (avcodec_decode_video2(pDecoder->pCodecCtx, pDecoder->pFrame, &finished,
-	                          pkt->pPack) < 0) {
+	if (avcodec_send_packet(pDecoder->pCodecCtx, pkt->pPack) < 0) {
 		return 0;
 	}
 
-	if (finished) {
+	if (avcodec_receive_frame(pDecoder->pCodecCtx, pDecoder->pFrame) == 0) {
 		pDecoder->pSwsCtx = sws_getCachedContext(
 		    pDecoder->pSwsCtx, pDecoder->pCodecCtx->width,
 		    pDecoder->pCodecCtx->height, pDecoder->pCodecCtx->pix_fmt,
@@ -826,11 +824,14 @@ int ac_decode_video_package(lp_ac_package pPackage,
 int ac_decode_audio_package(lp_ac_package pPackage,
                             lp_ac_audio_decoder pDecoder)
 {
-	int got_frame = 0;
-	int len = 0;
+                            lp_ac_audio_decoder pDecoder) {
 	lp_ac_package_data pkt = ((lp_ac_package_data)pPackage);
-	if ((len = avcodec_decode_audio4(pDecoder->pCodecCtx, pDecoder->pFrame,
-	                                 &got_frame, pkt->pPack)) < 0) {
+
+	if (avcodec_send_packet(pDecoder->pCodecCtx, pkt->pPack) < 0) {
+		return 0;
+	}
+
+	if (avcodec_receive_frame(pDecoder->pCodecCtx, pDecoder->pFrame) < 0) {
 		return 0;
 	}
 
@@ -856,7 +857,7 @@ int ac_decode_audio_package(lp_ac_package pPackage,
 		pDecoder->decoder.pBuffer = pDecoder->pFrame->data[0];
 	}
 
-	return got_frame;
+	return 1;
 }
 
 int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
