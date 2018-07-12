@@ -8,7 +8,8 @@ AllowShortIfStatementsOnASingleLine: false
 NamespaceIndentation: None
 DerivePointerAlignment: false
 PointerAlignment: Right
-BreakBeforeBraces: Stroustrup
+BreakBeforeBraces: Attach
+KeepEmptyLinesAtTheStartOfBlocks: true
 
 AllowShortBlocksOnASingleLine: true
 AllowShortFunctionsOnASingleLine: true

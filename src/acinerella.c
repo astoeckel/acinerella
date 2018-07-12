@@ -16,16 +16,17 @@
  * along with Acinerella.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
+#include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavformat/avio.h>
-#include <libavcodec/avcodec.h>
 #include <libavutil/avutil.h>
-#include <libswscale/swscale.h>
+#include <libavutil/imgutils.h>
 #include <libswresample/swresample.h>
+#include <libswscale/swscale.h>
 
 #include "acinerella.h"
 
@@ -127,8 +128,7 @@ void ac_free_audio_decoder(lp_ac_audio_decoder pDecoder);
 //--- Initialization and Stream opening---
 //
 
-void init_info(lp_ac_file_info info)
-{
+void init_info(lp_ac_file_info info) {
 	info->title[0] = 0;
 	info->author[0] = 0;
 	info->copyright[0] = 0;
@@ -142,14 +142,14 @@ void init_info(lp_ac_file_info info)
 }
 
 /* avcodec_register_all(), av_register_all() deprecated since lavc 58.9.100 */
-#if (LIBAVCODEC_VERSION_MAJOR < 58) || ((LIBAVCODEC_VERSION_MAJOR == 58) && (LIBAVCODEC_VERSION_MINOR < 9))
+#if (LIBAVCODEC_VERSION_MAJOR < 58) || \
+    ((LIBAVCODEC_VERSION_MAJOR == 58) && (LIBAVCODEC_VERSION_MINOR < 9))
 #define AC_NEED_REGISTER_ALL
 #endif
 
 #ifdef AC_NEED_REGISTER_ALL
 static bool av_initialized = false;
-static void ac_init_ffmpeg()
-{
+static void ac_init_ffmpeg() {
 	if (!av_initialized) {
 		avcodec_register_all();
 		av_register_all();
@@ -159,8 +159,7 @@ static void ac_init_ffmpeg()
 }
 #endif /* AC_NEED_REGISTER_ALL */
 
-lp_ac_instance CALL_CONVT ac_init(void)
-{
+lp_ac_instance CALL_CONVT ac_init(void) {
 #ifdef AC_NEED_REGISTER_ALL
 	ac_init_ffmpeg();
 #endif /* AC_NEED_REGISTER_ALL */
@@ -179,8 +178,7 @@ lp_ac_instance CALL_CONVT ac_init(void)
 	return (lp_ac_instance)ptmp;
 }
 
-void CALL_CONVT ac_free(lp_ac_instance pacInstance)
-{
+void CALL_CONVT ac_free(lp_ac_instance pacInstance) {
 	if (pacInstance) {
 		// Close the decoder. If it is already closed, this won't be a problem
 		// as
@@ -190,8 +188,7 @@ void CALL_CONVT ac_free(lp_ac_instance pacInstance)
 	}
 }
 
-static int io_read(void *opaque, uint8_t *buf, int buf_size)
-{
+static int io_read(void *opaque, uint8_t *buf, int buf_size) {
 	lp_ac_data self = ((lp_ac_data)opaque);
 
 	// If there is still memory in the probe buffer, consume this memory first
@@ -224,8 +221,7 @@ static int io_read(void *opaque, uint8_t *buf, int buf_size)
 	return -1;
 }
 
-static int64_t io_seek(void *opaque, int64_t pos, int whence)
-{
+static int64_t io_seek(void *opaque, int64_t pos, int whence) {
 	lp_ac_data self = ((lp_ac_data)opaque);
 	if (self->seek_proc != NULL) {
 		if ((whence >= 0) && (whence <= 2)) {
@@ -237,8 +233,7 @@ static int64_t io_seek(void *opaque, int64_t pos, int whence)
 
 lp_ac_proberesult CALL_CONVT ac_probe_input_buffer(uint8_t *buf, int bufsize,
                                                    char *filename,
-                                                   int *score_max)
-{
+                                                   int *score_max) {
 	AVProbeData pd;
 	AVInputFormat *fmt = NULL;
 
@@ -279,8 +274,7 @@ lp_ac_proberesult CALL_CONVT ac_probe_input_buffer(uint8_t *buf, int bufsize,
 
 AVInputFormat *ac_probe_input_stream(void *sender, ac_read_callback read_proc,
                                      char *filename, uint8_t **buf,
-                                     size_t *buf_read)
-{
+                                     size_t *buf_read) {
 	// Initialize the result variables
 	AVInputFormat *fmt = NULL;
 	*buf_read = 0;
@@ -330,8 +324,7 @@ AVInputFormat *ac_probe_input_stream(void *sender, ac_read_callback read_proc,
 }
 
 static void cpymetadata(const AVFormatContext *ctx, const char *key, char *tar,
-                        size_t len)
-{
+                        size_t len) {
 	const AVDictionaryEntry *entry = av_dict_get(ctx->metadata, key, NULL, 0);
 	if (entry) {
 		strncpy(tar, entry->value, len);
@@ -340,15 +333,14 @@ static void cpymetadata(const AVFormatContext *ctx, const char *key, char *tar,
 	}
 }
 
-static void cpymetadatai(const AVFormatContext *ctx, const char *key, int *tar)
-{
+static void cpymetadatai(const AVFormatContext *ctx, const char *key,
+                         int *tar) {
 	char buf[16];
 	cpymetadata(ctx, key, buf, 16);
 	*tar = atoi(buf);
 }
 
-static int finalize_open(lp_ac_instance pacInstance)
-{
+static int finalize_open(lp_ac_instance pacInstance) {
 	lp_ac_data self = ((lp_ac_data)pacInstance);
 
 	// Assume the stream is opened
@@ -386,8 +378,7 @@ int CALL_CONVT ac_open(lp_ac_instance pacInstance, void *sender,
                        ac_openclose_callback open_proc,
                        ac_read_callback read_proc, ac_seek_callback seek_proc,
                        ac_openclose_callback close_proc,
-                       lp_ac_proberesult proberesult)
-{
+                       lp_ac_proberesult proberesult) {
 	// Instance cannot be opened twice!
 	if (pacInstance->opened) {
 		return -1;
@@ -445,8 +436,7 @@ int CALL_CONVT ac_open(lp_ac_instance pacInstance, void *sender,
 	return finalize_open(pacInstance);
 }
 
-int CALL_CONVT ac_open_file(lp_ac_instance pacInstance, const char *filename)
-{
+int CALL_CONVT ac_open_file(lp_ac_instance pacInstance, const char *filename) {
 	// Instance cannot be opened twice!
 	if (pacInstance->opened) {
 		return -1;
@@ -464,8 +454,7 @@ int CALL_CONVT ac_open_file(lp_ac_instance pacInstance, const char *filename)
 	return finalize_open(pacInstance);
 }
 
-void CALL_CONVT ac_close(lp_ac_instance pacInstance)
-{
+void CALL_CONVT ac_close(lp_ac_instance pacInstance) {
 	lp_ac_data self = ((lp_ac_data)pacInstance);
 	if (pacInstance->opened) {
 		// Close the opened file
@@ -494,8 +483,7 @@ void CALL_CONVT ac_close(lp_ac_instance pacInstance)
 }
 
 void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
-                                   lp_ac_stream_info info)
-{
+                                   lp_ac_stream_info info) {
 	// Rese the stream info structure
 	memset(info, 0, sizeof(ac_stream_info));
 	info->stream_type = AC_STREAM_TYPE_UNKNOWN;
@@ -518,10 +506,10 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
 			info->additional_info.video_info.frame_height =
 			    self->pFormatCtx->streams[nb]->codecpar->height;
 
-			double pixel_aspect_num =
-			    self->pFormatCtx->streams[nb]->codecpar->sample_aspect_ratio.num;
-			double pixel_aspect_den =
-			    self->pFormatCtx->streams[nb]->codecpar->sample_aspect_ratio.den;
+			double pixel_aspect_num = self->pFormatCtx->streams[nb]
+			                              ->codecpar->sample_aspect_ratio.num;
+			double pixel_aspect_den = self->pFormatCtx->streams[nb]
+			                              ->codecpar->sample_aspect_ratio.den;
 
 			// Sometime "pixel aspect" may be zero or have other invalid values.
 			// Correct this.
@@ -560,10 +548,10 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
 					break;
 
 				/*        //24-Bit (removed in the newest ffmpeg version)
-				        case SAMPLE_FMT_S24:
-				          info->additional_info.audio_info.bit_depth =
-				              24;
-				        break; */
+					    case SAMPLE_FMT_S24:
+					      info->additional_info.audio_info.bit_depth =
+					          24;
+					    break; */
 
 				// 32-Bit
 				case AV_SAMPLE_FMT_S32:
@@ -591,8 +579,7 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
 //---Package management---
 //
 
-lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance)
-{
+lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance) {
 	// Allocate the result packet
 	lp_ac_package_data pkt = av_malloc(sizeof(ac_package_data));
 	memset(pkt, 0, sizeof(ac_package_data));
@@ -616,8 +603,7 @@ lp_ac_package CALL_CONVT ac_read_package(lp_ac_instance pacInstance)
 }
 
 // Frees the currently loaded package
-void CALL_CONVT ac_free_package(lp_ac_package pPackage)
-{
+void CALL_CONVT ac_free_package(lp_ac_package pPackage) {
 	if (pPackage) {
 		lp_ac_package_data self = (lp_ac_package_data)pPackage;
 		av_packet_unref(self->pPack);
@@ -630,8 +616,7 @@ void CALL_CONVT ac_free_package(lp_ac_package pPackage)
 //--- Decoder management ---
 //
 
-enum AVPixelFormat convert_pix_format(ac_output_format fmt)
-{
+enum AVPixelFormat convert_pix_format(ac_output_format fmt) {
 	switch (fmt) {
 		case AC_OUTPUT_RGB24:
 			return AV_PIX_FMT_RGB24;
@@ -647,8 +632,7 @@ enum AVPixelFormat convert_pix_format(ac_output_format fmt)
 
 // Init a video decoder
 void *ac_create_video_decoder(lp_ac_instance pacInstance,
-                              lp_ac_stream_info info, int nb)
-{
+                              lp_ac_stream_info info, int nb) {
 	// Allocate memory for a new decoder instance
 	lp_ac_data self = ((lp_ac_data)(pacInstance));
 	lp_ac_video_decoder pDecoder;
@@ -657,7 +641,8 @@ void *ac_create_video_decoder(lp_ac_instance pacInstance,
 
 	// Manually create a codec context
 	AVFormatContext *pFormatCtx = self->pFormatCtx;
-	AVCodec *pCodec = avcodec_find_decoder(pFormatCtx->streams[nb]->codecpar->codec_id);
+	AVCodec *pCodec =
+	    avcodec_find_decoder(pFormatCtx->streams[nb]->codecpar->codec_id);
 	AVCodecContext *pCodecCtx = avcodec_alloc_context3(pCodec);
 	avcodec_parameters_to_context(pCodecCtx, pFormatCtx->streams[nb]->codecpar);
 
@@ -706,8 +691,7 @@ void *ac_create_video_decoder(lp_ac_instance pacInstance,
 
 // Init a audio decoder
 void *ac_create_audio_decoder(lp_ac_instance pacInstance,
-                              lp_ac_stream_info info, int nb)
-{
+                              lp_ac_stream_info info, int nb) {
 	// Allocate memory for a new decoder instance
 	lp_ac_data self = ((lp_ac_data)(pacInstance));
 	lp_ac_audio_decoder pDecoder = NULL;
@@ -716,7 +700,8 @@ void *ac_create_audio_decoder(lp_ac_instance pacInstance,
 
 	// Manually create a codec context
 	AVFormatContext *pFormatCtx = self->pFormatCtx;
-	AVCodec *pCodec = avcodec_find_decoder(pFormatCtx->streams[nb]->codecpar->codec_id);
+	AVCodec *pCodec =
+	    avcodec_find_decoder(pFormatCtx->streams[nb]->codecpar->codec_id);
 	AVCodecContext *pCodecCtx = avcodec_alloc_context3(pCodec);
 	avcodec_parameters_to_context(pCodecCtx, pFormatCtx->streams[nb]->codecpar);
 
@@ -766,8 +751,7 @@ error:
 	return NULL;
 }
 
-lp_ac_decoder CALL_CONVT ac_create_decoder(lp_ac_instance pacInstance, int nb)
-{
+lp_ac_decoder CALL_CONVT ac_create_decoder(lp_ac_instance pacInstance, int nb) {
 	// Get information about the chosen data stream and create an decoder that
 	// can handle this kind of stream.
 	ac_stream_info info;
@@ -793,8 +777,7 @@ lp_ac_decoder CALL_CONVT ac_create_decoder(lp_ac_instance pacInstance, int nb)
 }
 
 int ac_decode_video_package(lp_ac_package pPackage,
-                            lp_ac_video_decoder pDecoder)
-{
+                            lp_ac_video_decoder pDecoder) {
 	lp_ac_package_data pkt = ((lp_ac_package_data)pPackage);
 
 	if (avcodec_send_packet(pDecoder->pCodecCtx, pkt->pPack) < 0) {
@@ -822,8 +805,6 @@ int ac_decode_video_package(lp_ac_package pPackage,
 }
 
 int ac_decode_audio_package(lp_ac_package pPackage,
-                            lp_ac_audio_decoder pDecoder)
-{
                             lp_ac_audio_decoder pDecoder) {
 	lp_ac_package_data pkt = ((lp_ac_package_data)pPackage);
 
@@ -860,8 +841,8 @@ int ac_decode_audio_package(lp_ac_package pPackage,
 	return 1;
 }
 
-int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
-{
+int CALL_CONVT ac_decode_package(lp_ac_package pPackage,
+                                 lp_ac_decoder pDecoder) {
 	double timebase = av_q2d(((lp_ac_data)pDecoder->pacInstance)
 	                             ->pFormatCtx->streams[pPackage->stream_index]
 	                             ->time_base);
@@ -902,8 +883,7 @@ int CALL_CONVT ac_decode_package(lp_ac_package pPackage, lp_ac_decoder pDecoder)
 }
 
 // Seek function
-int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos)
-{
+int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos) {
 	AVRational timebase = ((lp_ac_data)pDecoder->pacInstance)
 	                          ->pFormatCtx->streams[pDecoder->stream_index]
 	                          ->time_base;
@@ -926,8 +906,7 @@ int CALL_CONVT ac_seek(lp_ac_decoder pDecoder, int dir, int64_t target_pos)
 }
 
 // Free video decoder
-void ac_free_video_decoder(lp_ac_video_decoder pDecoder)
-{
+void ac_free_video_decoder(lp_ac_video_decoder pDecoder) {
 	if (pDecoder) {
 		av_free(pDecoder->pFrame);
 		av_free(pDecoder->pFrameRGB);
@@ -940,8 +919,7 @@ void ac_free_video_decoder(lp_ac_video_decoder pDecoder)
 }
 
 // Free video decoder
-void ac_free_audio_decoder(lp_ac_audio_decoder pDecoder)
-{
+void ac_free_audio_decoder(lp_ac_audio_decoder pDecoder) {
 	if (pDecoder) {
 		avcodec_close(pDecoder->pCodecCtx);
 		av_frame_free(&(pDecoder->pFrame));
@@ -955,8 +933,7 @@ void ac_free_audio_decoder(lp_ac_audio_decoder pDecoder)
 	}
 }
 
-void CALL_CONVT ac_free_decoder(lp_ac_decoder pDecoder)
-{
+void CALL_CONVT ac_free_decoder(lp_ac_decoder pDecoder) {
 	if (pDecoder) {
 		if (pDecoder->type == AC_DECODER_TYPE_VIDEO) {
 			ac_free_video_decoder((lp_ac_video_decoder)pDecoder);
