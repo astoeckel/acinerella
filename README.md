@@ -53,7 +53,10 @@ https://sourceforge.net/projects/acinerella/files/
 License
 -------
 
-Copyright (C) 2008-2016 Andreas Stoeckel
+Copyright (C) 2008-2018 Andreas Stoeckel
 
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-http://www.gnu.org/licenses/
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
