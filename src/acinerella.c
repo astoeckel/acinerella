@@ -686,17 +686,20 @@ void *ac_create_video_decoder(lp_ac_instance pacInstance,
 	pDecoder->pSwsCtx = NULL;
 
 	// Reserve buffer memory
-	pDecoder->decoder.buffer_size = avpicture_get_size(
-	    convert_pix_format(pacInstance->output_format),
-	    pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height);
+	enum AVPixelFormat pix_fmt_out =
+	    convert_pix_format(pacInstance->output_format);
+	pDecoder->decoder.buffer_size =
+	    av_image_get_buffer_size(pix_fmt_out, pDecoder->pCodecCtx->width,
+	                             pDecoder->pCodecCtx->height, 1);
 	pDecoder->decoder.pBuffer =
 	    (uint8_t *)av_malloc(pDecoder->decoder.buffer_size);
 
 	// Link decoder to buffer
-	avpicture_fill((AVPicture *)(pDecoder->pFrameRGB),
-	               pDecoder->decoder.pBuffer,
-	               convert_pix_format(pacInstance->output_format),
-	               pDecoder->pCodecCtx->width, pDecoder->pCodecCtx->height);
+	AVFrame *picture = (AVFrame *)(pDecoder->pFrameRGB);
+	av_image_fill_arrays(picture->data, picture->linesize,
+	                     pDecoder->decoder.pBuffer, pix_fmt_out,
+	                     pDecoder->pCodecCtx->width,
+	                     pDecoder->pCodecCtx->height, 1);
 
 	return (void *)pDecoder;
 }
