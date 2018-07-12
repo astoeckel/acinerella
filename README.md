@@ -12,17 +12,17 @@ format.
 Features
 --------
 
-**Easy to use API**
+**Simple API**
 
 Acinerella does all the "FFmpeg stuff" for you. Decoding videos was never easier.
 
-**A single compact library**
+**Single compact library**
 
 FFmpeg can be staticaly linked into Acinerella
 
-**Easy to use with other programming languages**
+**Can be easily used from other programming languages**
 
-The Acinerella header file has only about 120 lines and is easy to port to other programming languages. A Pascal header exists.
+The Acinerella C API is about 120 lines long and is easy to port to other programming languages. A Pascal header exists.
 
 Usage
 -----
