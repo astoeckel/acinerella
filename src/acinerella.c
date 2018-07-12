@@ -645,7 +645,8 @@ static enum AVPixelFormat convert_pix_format(ac_output_format fmt) {
 
 // Init a video decoder
 static void *ac_create_video_decoder(lp_ac_instance pacInstance,
-                                     lp_ac_stream_info info, int nb) {
+                                     lp_ac_stream_info info, int nb,
+                                     ac_codecctx_callback codec_proc) {
 	// Allocate memory for a new decoder instance
 	lp_ac_data self = ((lp_ac_data)(pacInstance));
 	lp_ac_video_decoder pDecoder;
@@ -659,6 +660,11 @@ static void *ac_create_video_decoder(lp_ac_instance pacInstance,
 	AVCodecContext *pCodecCtx;
 	ERR(pCodecCtx = avcodec_alloc_context3(pCodec));
 	AV_ERR(avcodec_parameters_to_context(pCodecCtx, pFormatCtx->streams[nb]->codecpar));
+
+	// Call codec_proc if provided
+	if (codec_proc != NULL) {
+		ERR(codec_proc(pCodecCtx));
+	}
 
 	// Set a few properties
 	pDecoder->decoder.pacInstance = pacInstance;
@@ -705,7 +711,8 @@ error:
 
 // Init a audio decoder
 static void *ac_create_audio_decoder(lp_ac_instance pacInstance,
-                                     lp_ac_stream_info info, int nb) {
+                                     lp_ac_stream_info info, int nb,
+                                     ac_codecctx_callback codec_proc) {
 	// Allocate memory for a new decoder instance
 	lp_ac_data self = ((lp_ac_data)(pacInstance));
 	lp_ac_audio_decoder pDecoder;
@@ -719,6 +726,11 @@ static void *ac_create_audio_decoder(lp_ac_instance pacInstance,
 	AVCodecContext *pCodecCtx;
 	ERR(pCodecCtx = avcodec_alloc_context3(pCodec));
 	AV_ERR(avcodec_parameters_to_context(pCodecCtx, pFormatCtx->streams[nb]->codecpar));
+
+	// Call codec_proc if provided
+	if (codec_proc != NULL) {
+		ERR(codec_proc(pCodecCtx));
+	}
 
 	// Set a few properties
 	pDecoder->decoder.pacInstance = pacInstance;
@@ -767,6 +779,11 @@ error:
 }
 
 lp_ac_decoder CALL_CONVT ac_create_decoder(lp_ac_instance pacInstance, int nb) {
+	return ac_create_decoder_ex(pacInstance, nb, NULL);
+}
+
+lp_ac_decoder CALL_CONVT ac_create_decoder_ex(lp_ac_instance pacInstance, int nb,
+                                              ac_codecctx_callback codec_proc) {
 	// Get information about the chosen data stream and create an decoder that
 	// can handle this kind of stream.
 	ac_stream_info info;
@@ -776,10 +793,12 @@ lp_ac_decoder CALL_CONVT ac_create_decoder(lp_ac_instance pacInstance, int nb) {
 
 	if (info.stream_type == AC_STREAM_TYPE_VIDEO) {
 		result =
-		    (lp_ac_decoder_data)ac_create_video_decoder(pacInstance, &info, nb);
+		    (lp_ac_decoder_data)ac_create_video_decoder(pacInstance, &info, nb,
+		                                                codec_proc);
 	} else if (info.stream_type == AC_STREAM_TYPE_AUDIO) {
 		result =
-		    (lp_ac_decoder_data)ac_create_audio_decoder(pacInstance, &info, nb);
+		    (lp_ac_decoder_data)ac_create_audio_decoder(pacInstance, &info, nb,
+		                                                codec_proc);
 	}
 
 	if (result) {

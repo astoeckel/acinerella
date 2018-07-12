@@ -408,6 +408,23 @@ EXTERN lp_ac_decoder CALL_CONVT
     ac_create_decoder(lp_ac_instance pacInstance, int nb);
 
 /**
+ * Callback function used to configure the codec context (AVCodecContext *).
+ * The return value 0 indicates failure, 1 indicates success.
+ */
+typedef int (CALL_CONVT *ac_codecctx_callback)(void *codecctx);
+
+/**
+ * Creates an decoder for the specified stream number. Returns NULL if no
+ * decoder could be found or some other error occurred.
+ *
+ * @param codec_proc is a function that will get called with the
+ * decoder's codec context (AVCodecContext *). May be NULL.
+ */
+EXTERN lp_ac_decoder CALL_CONVT
+    ac_create_decoder_ex(lp_ac_instance pacInstance, int nb,
+                         ac_codecctx_callback codec_proc);
+
+/**
  * Frees an created decoder.
  */
 EXTERN void CALL_CONVT ac_free_decoder(lp_ac_decoder pDecoder);
