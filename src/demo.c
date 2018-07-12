@@ -129,22 +129,22 @@ int main(int argc, char *argv[])
 	// Only the read callback is neccessary, all other callbacks may be 0
 	if (ac_open(pData, 0, &open_callback, &read_callback, &seek_callback,
 	            &close_callback, NULL) < 0) {
-		printf("Error opening media file!\n");
+		fprintf(stderr, "Error opening media file!\n");
 		exit(1);
 	}
 
 	// Display the count of the found data streams.
-	printf("Count of Datastreams:  %d \n", pData->stream_count);
+	fprintf(stderr, "Count of Datastreams:  %d \n", pData->stream_count);
 
 	// Print file info
-	printf("File duration: %ld \n", pData->info.duration);
-	printf("Title: %s \n", pData->info.title);
-	printf("Author: %s \n", pData->info.author);
-	printf("Album: %s \n", pData->info.album);
+	fprintf(stderr, "File duration: %ld \n", pData->info.duration);
+	fprintf(stderr, "Title: %s \n", pData->info.title);
+	fprintf(stderr, "Author: %s \n", pData->info.author);
+	fprintf(stderr, "Album: %s \n", pData->info.album);
 
 	// Go through every stream and fetch information about it.
 	for (i = pData->stream_count - 1; i >= 0; --i) {
-		printf("\nInformation about stream %d: \n", i);
+		fprintf(stderr, "\nInformation about stream %d: \n", i);
 
 		ac_stream_info info;
 
@@ -154,16 +154,16 @@ int main(int argc, char *argv[])
 		switch (info.stream_type) {
 			// Stream is a video stream - display information about it
 			case AC_STREAM_TYPE_VIDEO:
-				printf(
+				fprintf(stderr,
 				    "Stream is an video "
 				    "stream.\n--------------------------\n\n");
-				printf(" * Width            : %d\n",
+				fprintf(stderr, " * Width            : %d\n",
 				       info.additional_info.video_info.frame_width);
-				printf(" * Height           : %d\n",
+				fprintf(stderr, " * Height           : %d\n",
 				       info.additional_info.video_info.frame_height);
-				printf(" * Pixel aspect     : %f\n",
+				fprintf(stderr, " * Pixel aspect     : %f\n",
 				       info.additional_info.video_info.pixel_aspect);
-				printf(" * Frames per second: %lf \n",
+				fprintf(stderr, " * Frames per second: %lf \n",
 				       info.additional_info.video_info.frames_per_second);
 
 				// If we don't have a video decoder now, try to create a video
@@ -175,14 +175,14 @@ int main(int argc, char *argv[])
 
 			// Stream is an audio stream - display information about it
 			case AC_STREAM_TYPE_AUDIO:
-				printf(
+				fprintf(stderr,
 				    "Stream is an audio "
 				    "stream.\n--------------------------\n\n");
-				printf("  * Samples per Second: %d\n",
+				fprintf(stderr, "  * Samples per Second: %d\n",
 				       info.additional_info.audio_info.samples_per_second);
-				printf("  * Channel count     : %d\n",
+				fprintf(stderr, "  * Channel count     : %d\n",
 				       info.additional_info.audio_info.channel_count);
-				printf("  * Bit depth         : %d\n",
+				fprintf(stderr, "  * Bit depth         : %d\n",
 				       info.additional_info.audio_info.bit_depth);
 
 				// If we don't have an audio decoder now, try to create an audio
@@ -198,18 +198,18 @@ int main(int argc, char *argv[])
 
 	// Check whether the audio file was opened properly
 	if (!pData->opened) {
-		printf("No video/audio information found.\n\n");
+		fprintf(stderr, "No video/audio information found.\n\n");
 		return 0;
 	}
 
 	// Read all packets from the stream and try to decode them
-	printf("\nReading packet data...\n\n");
+	fprintf(stderr, "\nReading packet data...\n\n");
 
 	lp_ac_package pckt = NULL;
 	do {
 		pckt = ac_read_package(pData);
 		if (pckt != NULL) {
-			printf("Found packet for stream %d.\r", pckt->stream_index);
+			fprintf(stderr, "Found packet for stream %d.\r", pckt->stream_index);
 
 			if ((pVideoDecoder != NULL) &&
 			    (pckt->stream_index == pVideoDecoder->stream_index)) {
@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
 		ac_free_decoder(pAudioDecoder);
 	}
 
-	printf("End of stream reached                    \n");
+	fprintf(stderr, "End of stream reached                    \n");
 
 	close(audiofile);
 
