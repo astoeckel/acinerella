@@ -141,20 +141,29 @@ void init_info(lp_ac_file_info info)
 	info->bitrate = -1;
 }
 
-int av_initialized = 0;
-void ac_init_ffmpeg()
+/* avcodec_register_all(), av_register_all() deprecated since lavc 58.9.100 */
+#if (LIBAVCODEC_VERSION_MAJOR < 58) || ((LIBAVCODEC_VERSION_MAJOR == 58) && (LIBAVCODEC_VERSION_MINOR < 9))
+#define AC_NEED_REGISTER_ALL
+#endif
+
+#ifdef AC_NEED_REGISTER_ALL
+static bool av_initialized = false;
+static void ac_init_ffmpeg()
 {
 	if (!av_initialized) {
 		avcodec_register_all();
 		av_register_all();
 
-		av_initialized = 1;
+		av_initialized = true;
 	}
 }
+#endif /* AC_NEED_REGISTER_ALL */
 
 lp_ac_instance CALL_CONVT ac_init(void)
 {
+#ifdef AC_NEED_REGISTER_ALL
 	ac_init_ffmpeg();
+#endif /* AC_NEED_REGISTER_ALL */
 
 	// Allocate a new instance of the videoplayer data and return it
 	lp_ac_data ptmp;
@@ -233,8 +242,10 @@ lp_ac_proberesult CALL_CONVT ac_probe_input_buffer(uint8_t *buf, int bufsize,
 	AVProbeData pd;
 	AVInputFormat *fmt = NULL;
 
+#ifdef AC_NEED_REGISTER_ALL
 	// Initialize FFMpeg libraries
 	ac_init_ffmpeg();
+#endif /* AC_NEED_REGISTER_ALL */
 
 	// Set the filename and mime_type
 	pd.mime_type = "";
@@ -496,21 +507,21 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
 
 	// Read the information
 	lp_ac_data self = ((lp_ac_data)pacInstance);
-	switch (self->pFormatCtx->streams[nb]->codec->codec_type) {
+	switch (self->pFormatCtx->streams[nb]->codecpar->codec_type) {
 		case AVMEDIA_TYPE_VIDEO:
 			// Set stream type to "VIDEO"
 			info->stream_type = AC_STREAM_TYPE_VIDEO;
 
 			// Store more information about the video stream
 			info->additional_info.video_info.frame_width =
-			    self->pFormatCtx->streams[nb]->codec->width;
+			    self->pFormatCtx->streams[nb]->codecpar->width;
 			info->additional_info.video_info.frame_height =
-			    self->pFormatCtx->streams[nb]->codec->height;
+			    self->pFormatCtx->streams[nb]->codecpar->height;
 
 			double pixel_aspect_num =
-			    self->pFormatCtx->streams[nb]->codec->sample_aspect_ratio.num;
+			    self->pFormatCtx->streams[nb]->codecpar->sample_aspect_ratio.num;
 			double pixel_aspect_den =
-			    self->pFormatCtx->streams[nb]->codec->sample_aspect_ratio.den;
+			    self->pFormatCtx->streams[nb]->codecpar->sample_aspect_ratio.den;
 
 			// Sometime "pixel aspect" may be zero or have other invalid values.
 			// Correct this.
@@ -530,12 +541,12 @@ void CALL_CONVT ac_get_stream_info(lp_ac_instance pacInstance, int nb,
 
 			// Store more information about the video stream
 			info->additional_info.audio_info.samples_per_second =
-			    self->pFormatCtx->streams[nb]->codec->sample_rate;
+			    self->pFormatCtx->streams[nb]->codecpar->sample_rate;
 			info->additional_info.audio_info.channel_count =
-			    self->pFormatCtx->streams[nb]->codec->channels;
+			    self->pFormatCtx->streams[nb]->codecpar->channels;
 
 			// Set bit depth
-			switch (self->pFormatCtx->streams[nb]->codec->sample_fmt) {
+			switch (self->pFormatCtx->streams[nb]->codecpar->format) {
 				// 8-Bit
 				case AV_SAMPLE_FMT_U8:
 				case AV_SAMPLE_FMT_U8P:
@@ -609,7 +620,7 @@ void CALL_CONVT ac_free_package(lp_ac_package pPackage)
 {
 	if (pPackage) {
 		lp_ac_package_data self = (lp_ac_package_data)pPackage;
-		av_free_packet(self->pPack);
+		av_packet_unref(self->pPack);
 		av_free(self->pPack);
 		av_free(self);
 	}
@@ -639,16 +650,22 @@ void *ac_create_video_decoder(lp_ac_instance pacInstance,
                               lp_ac_stream_info info, int nb)
 {
 	// Allocate memory for a new decoder instance
+	lp_ac_data self = ((lp_ac_data)(pacInstance));
 	lp_ac_video_decoder pDecoder;
 	pDecoder = (lp_ac_video_decoder)(av_malloc(sizeof(ac_video_decoder)));
 	memset(pDecoder, 0, sizeof(ac_video_decoder));
+
+	// Manually create a codec context
+	AVFormatContext *pFormatCtx = self->pFormatCtx;
+	AVCodec *pCodec = avcodec_find_decoder(pFormatCtx->streams[nb]->codecpar->codec_id);
+	AVCodecContext *pCodecCtx = avcodec_alloc_context3(pCodec);
+	avcodec_parameters_to_context(pCodecCtx, pFormatCtx->streams[nb]->codecpar);
 
 	// Set a few properties
 	pDecoder->decoder.pacInstance = pacInstance;
 	pDecoder->decoder.type = AC_DECODER_TYPE_VIDEO;
 	pDecoder->decoder.stream_index = nb;
-	pDecoder->pCodecCtx =
-	    ((lp_ac_data)(pacInstance))->pFormatCtx->streams[nb]->codec;
+	pDecoder->pCodecCtx = pCodecCtx;
 	pDecoder->decoder.stream_info = *info;
 
 	// Find correspondenting codec
@@ -694,14 +711,17 @@ void *ac_create_audio_decoder(lp_ac_instance pacInstance,
 	ERR(pDecoder = (lp_ac_audio_decoder)(av_malloc(sizeof(ac_audio_decoder))));
 	memset(pDecoder, 0, sizeof(ac_audio_decoder));
 
+	// Manually create a codec context
+	AVFormatContext *pFormatCtx = self->pFormatCtx;
+	AVCodec *pCodec = avcodec_find_decoder(pFormatCtx->streams[nb]->codecpar->codec_id);
+	AVCodecContext *pCodecCtx = avcodec_alloc_context3(pCodec);
+	avcodec_parameters_to_context(pCodecCtx, pFormatCtx->streams[nb]->codecpar);
+
 	// Set a few properties
 	pDecoder->decoder.pacInstance = pacInstance;
 	pDecoder->decoder.type = AC_DECODER_TYPE_AUDIO;
 	pDecoder->decoder.stream_index = nb;
 	pDecoder->decoder.stream_info = *info;
-
-	// Temporary store codec context pointer
-	AVCodecContext *pCodecCtx = self->pFormatCtx->streams[nb]->codec;
 	pDecoder->pCodecCtx = pCodecCtx;
 
 	// Find correspondenting codec
@@ -909,6 +929,7 @@ void ac_free_video_decoder(lp_ac_video_decoder pDecoder)
 		av_free(pDecoder->pFrameRGB);
 		sws_freeContext(pDecoder->pSwsCtx);
 		avcodec_close(pDecoder->pCodecCtx);
+		av_free(pDecoder->pCodecCtx);
 		av_free(pDecoder->decoder.pBuffer);
 		av_free(pDecoder);
 	}
