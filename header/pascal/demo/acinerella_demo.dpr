@@ -18,14 +18,16 @@
 
 program acinerella_demo;
 
+{$IFDEF WIN32}
 {$APPTYPE CONSOLE}
+{$ENDIF}
 
 {$IFDEF FPC}
   {$MODE DELPHI}
 {$ENDIF}
 
 uses
-  {$IFDEF FPC}Interfaces,{$ENDIF}{$IFDEF WIN32}Windows,{$ENDIF}Forms, Graphics, Classes, SysUtils, acinerella;
+  {$IFDEF FPC}Interfaces, ExtCtrls, GraphType, Controls, {$ENDIF}{$IFDEF WIN32}Windows,{$ENDIF}Forms, Graphics, Classes, SysUtils, acinerella;
 
 type
   TWAVHdr = packed Record
@@ -51,8 +53,13 @@ var
   info: TAc_stream_info;
   audiodecoder: PAc_decoder;
   videodecoder: PAc_decoder;
-  i: integer;
+  i, w, h, y: integer;
+  psrc, ptar: PByte;
   frm: TForm;
+{$IFDEF FPC}
+  img: TImage;
+  raw: TRawImage;
+{$ENDIF}
   bmp: TBitmap;
   fs: TFileStream;
   read_cnt: integer;
@@ -83,9 +90,19 @@ begin
 
   Application.Initialize;
   frm := TForm.Create(nil);
-
+{$IFDEF FPC}
+  img := TImage.Create(frm);
+  img.Parent := frm;
+  img.Proportional := True;
+  img.Stretch := True;
+  img.Center := True;
+  img.Align := alClient;
+  bmp := img.Picture.Bitmap;
+  bmp.PixelFormat := pf32Bit;
+{$ELSE}
   bmp := TBitmap.Create;
   bmp.PixelFormat := pf24Bit;
+{$ENDIF}
 
   fs := TFileStream.Create(ParamStr(1), fmOpenRead);
   fs.Position := 0;
@@ -95,6 +112,9 @@ begin
   Writeln;
 
   inst := ac_init();
+{$IFDEF FPC}
+  inst^.output_format := AC_OUTPUT_BGRA32;
+{$ENDIF}
   ac_open(inst, nil, nil, @read_proc, nil, nil, nil);
 
   Writeln('Count of Datastreams: ', inst^.stream_count);
@@ -129,7 +149,10 @@ begin
             wave_hdr.len := 36;
             wave_hdr.cWavFmt := 'WAVEfmt ';
             wave_hdr.dwHdrLen := 16;
-            wave_hdr.wFormat := 1;
+            if bit_depth = 32 then
+              wave_hdr.wFormat := 3
+            else
+              wave_hdr.wFormat := 1;
             wave_hdr.wNumChannels := channel_count;
             wave_hdr.dwSampleRate := samples_per_second;
             wave_hdr.wBlockAlign := (channel_count * bit_depth) div 8;
@@ -156,11 +179,13 @@ begin
         if videodecoder = nil then
         begin
           videodecoder := ac_create_decoder(inst, i);
-          bmp.Height := videodecoder^.stream_info.additional_info.video_info.frame_height;
-          bmp.Width := videodecoder^.stream_info.additional_info.video_info.frame_width;
+          h := videodecoder^.stream_info.additional_info.video_info.frame_height;
+          w := videodecoder^.stream_info.additional_info.video_info.frame_width;
+          bmp.Height := h;
+          bmp.Width := w;
           frm.ClientWidth :=
-            round(bmp.Width * videodecoder^.stream_info.additional_info.video_info.pixel_aspect);
-          frm.ClientHeight := bmp.Height;
+            round(w * videodecoder^.stream_info.additional_info.video_info.pixel_aspect);
+          frm.ClientHeight := h;
           frm.Show;
         end;
       end;
@@ -194,6 +219,19 @@ begin
           SetStretchBltMode(frm.Canvas.Handle, HALFTONE); 
           StretchBlt(frm.Canvas.Handle, 0, frm.Height, frm.Width, -frm.Height, bmp.Canvas.Handle,
             0, 0, bmp.Width, bmp.Height, SRCCOPY);
+          {$ELSE}
+          try
+             bmp.BeginUpdate(False);
+             raw := bmp.RawImage;
+             psrc := videodecoder^.buffer;
+             ptar := raw.Data;
+             for y := 0 to h - 1 do begin
+               Move((psrc + 4 * w * y)^, ptar^, raw.Description.BytesPerLine);
+               inc(ptar, raw.Description.BytesPerLine);
+             end;
+          finally
+            bmp.EndUpdate(False);
+          end;
           {$ENDIF}
         end;
       end;
@@ -228,6 +266,8 @@ begin
     wave.Free;
   end;      
 
-  frm.Free;
+{$IFNDEF FPC}
   bmp.Free;
+{$ENDIF}
+  frm.Free;
 end.

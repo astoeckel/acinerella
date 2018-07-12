@@ -1,21 +1,25 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
+    <Version Value="10"/>
     <PathDelim Value="\"/>
-    <Version Value="7"/>
     <General>
       <Flags>
+        <SaveClosedFiles Value="False"/>
         <LRSInOutputDirectory Value="False"/>
+        <SaveJumpHistory Value="False"/>
+        <SaveFoldState Value="False"/>
       </Flags>
+      <SessionStorage Value="None"/>
       <MainUnit Value="0"/>
-      <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <VersionInfo>
-      <ProjectVersion Value=""/>
       <Language Value=""/>
       <CharSet Value=""/>
     </VersionInfo>
+    <BuildModes Count="1">
+      <Item1 Name="default" Default="True"/>
+    </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
       <IgnoreBinaries Value="False"/>
@@ -29,140 +33,32 @@
         <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <Units Count="3">
+    <RequiredPackages Count="1">
+      <Item1>
+        <PackageName Value="LCL"/>
+      </Item1>
+    </RequiredPackages>
+    <Units Count="1">
       <Unit0>
         <Filename Value="acinerella_demo.dpr"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="acinerella_demo"/>
-        <CursorPos X="103" Y="10"/>
-        <TopLine Value="1"/>
-        <EditorIndex Value="0"/>
-        <UsageCount Value="23"/>
-        <Loaded Value="True"/>
       </Unit0>
-      <Unit1>
-        <Filename Value="..\acinerella.pas"/>
-        <UnitName Value="acinerella"/>
-        <CursorPos X="10" Y="36"/>
-        <TopLine Value="4"/>
-        <EditorIndex Value="1"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
-      </Unit1>
-      <Unit2>
-        <Filename Value="..\..\..\..\..\..\..\Programme\Lazarus\lcl\include\application.inc"/>
-        <CursorPos X="1" Y="345"/>
-        <TopLine Value="310"/>
-        <UsageCount Value="10"/>
-      </Unit2>
     </Units>
-    <JumpHistory Count="22" HistoryIndex="21">
-      <Position1>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="34" Column="9" TopLine="14"/>
-      </Position1>
-      <Position2>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="6" Column="24" TopLine="1"/>
-      </Position2>
-      <Position3>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="3" Column="1" TopLine="1"/>
-      </Position3>
-      <Position4>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="27" Column="34" TopLine="1"/>
-      </Position4>
-      <Position5>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="43" Column="3" TopLine="22"/>
-      </Position5>
-      <Position6>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="7" Column="8" TopLine="1"/>
-      </Position6>
-      <Position7>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="168" Column="46" TopLine="143"/>
-      </Position7>
-      <Position8>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="10" Column="80" TopLine="1"/>
-      </Position8>
-      <Position9>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="81" Column="1" TopLine="60"/>
-      </Position9>
-      <Position10>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="82" Column="1" TopLine="61"/>
-      </Position10>
-      <Position11>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="83" Column="1" TopLine="62"/>
-      </Position11>
-      <Position12>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="86" Column="1" TopLine="65"/>
-      </Position12>
-      <Position13>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="87" Column="1" TopLine="66"/>
-      </Position13>
-      <Position14>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="88" Column="1" TopLine="67"/>
-      </Position14>
-      <Position15>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="86" Column="1" TopLine="65"/>
-      </Position15>
-      <Position16>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="126" Column="89" TopLine="89"/>
-      </Position16>
-      <Position17>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="98" Column="37" TopLine="77"/>
-      </Position17>
-      <Position18>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="176" Column="1" TopLine="144"/>
-      </Position18>
-      <Position19>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="175" Column="1" TopLine="154"/>
-      </Position19>
-      <Position20>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="179" Column="1" TopLine="158"/>
-      </Position20>
-      <Position21>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="170" Column="41" TopLine="149"/>
-      </Position21>
-      <Position22>
-        <Filename Value="acinerella_demo.dpr"/>
-        <Caret Line="10" Column="103" TopLine="1"/>
-      </Position22>
-    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="8"/>
+    <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <Libraries Value="..\..\..\bin\"/>
-      <OtherUnitFiles Value="..\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\packager\units\$(TargetCPU)-$(TargetOS)\"/>
-      <UnitOutputDirectory Value="..\..\..\bin"/>
+      <Libraries Value="..\..\..\build"/>
+      <OtherUnitFiles Value=".."/>
+      <UnitOutputDirectory Value="..\..\..\build"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
         <CStyleOperator Value="False"/>
+        <UseAnsiStrings Value="False"/>
       </SyntaxOptions>
     </Parsing>
-    <Other>
-      <CompilerPath Value="$(CompPath)"/>
-    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions Count="2">
