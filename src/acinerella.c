@@ -941,8 +941,8 @@ error:
 // Free video decoder
 static void ac_free_video_decoder(lp_ac_video_decoder pDecoder) {
 	if (pDecoder) {
-		av_free(pDecoder->pFrame);
-		av_free(pDecoder->pFrameRGB);
+		av_frame_free(&(pDecoder->pFrame));
+		av_frame_free(&(pDecoder->pFrameRGB));
 		sws_freeContext(pDecoder->pSwsCtx);
 		avcodec_close(pDecoder->pCodecCtx);
 		av_free(pDecoder->pCodecCtx);
