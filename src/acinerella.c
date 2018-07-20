@@ -697,10 +697,10 @@ static void *ac_create_video_decoder(lp_ac_instance pacInstance,
 
 	// Link decoder to buffer
 	AVFrame *picture = (AVFrame *)(pDecoder->pFrameRGB);
-	av_image_fill_arrays(picture->data, picture->linesize,
-	                     pDecoder->decoder.pBuffer, pix_fmt_out,
-	                     pDecoder->pCodecCtx->width,
-	                     pDecoder->pCodecCtx->height, 1);
+	AV_ERR(av_image_fill_arrays(picture->data, picture->linesize,
+	                            pDecoder->decoder.pBuffer, pix_fmt_out,
+	                            pDecoder->pCodecCtx->width,
+	                            pDecoder->pCodecCtx->height, 1));
 
 	return (void *)pDecoder;
 
@@ -767,8 +767,8 @@ static void *ac_create_audio_decoder(lp_ac_instance pacInstance,
 		if (out_fmt == AV_SAMPLE_FMT_DBL || out_fmt == AV_SAMPLE_FMT_S32) {
 			out_fmt = AV_SAMPLE_FMT_FLT;
 		}
-		pDecoder->pSwrCtx = swr_alloc_set_opts(NULL, layout, out_fmt, rate,
-		                                       layout, fmt, rate, 0, NULL);
+		ERR(pDecoder->pSwrCtx = swr_alloc_set_opts(NULL, layout, out_fmt, rate,
+		                                           layout, fmt, rate, 0, NULL));
 		AV_ERR(swr_init(pDecoder->pSwrCtx));
 	}
 	return (void *)pDecoder;
@@ -825,12 +825,12 @@ static int ac_decode_video_package(lp_ac_package pPackage,
 	    convert_pix_format(pDecoder->decoder.pacInstance->output_format),
 	    SWS_BICUBIC, NULL, NULL, NULL));
 
-	sws_scale(pDecoder->pSwsCtx,
-	          (const uint8_t *const *)(pDecoder->pFrame->data),
-	          pDecoder->pFrame->linesize,
-	          0,  //?
-	          pDecoder->pCodecCtx->height, pDecoder->pFrameRGB->data,
-	          pDecoder->pFrameRGB->linesize);
+	AV_ERR(sws_scale(pDecoder->pSwsCtx,
+	                 (const uint8_t *const *)(pDecoder->pFrame->data),
+	                 pDecoder->pFrame->linesize,
+	                 0,  //?
+	                 pDecoder->pCodecCtx->height, pDecoder->pFrameRGB->data,
+	                 pDecoder->pFrameRGB->linesize));
 	return 1;
 
 error:
@@ -860,9 +860,9 @@ static int ac_decode_audio_package(lp_ac_package pPackage,
 			pDecoder->decoder.pBuffer = newbuffer;
 			pDecoder->own_buffer_size = buffer_size;
 		}
-		swr_convert(pDecoder->pSwrCtx, &(pDecoder->decoder.pBuffer),
-		            sample_count, (const uint8_t **)(pDecoder->pFrame->data),
-		            sample_count);
+		AV_ERR(swr_convert(pDecoder->pSwrCtx, &(pDecoder->decoder.pBuffer),
+		                   sample_count, (const uint8_t **)(pDecoder->pFrame->data),
+		                   sample_count));
 	} else {
 		// No conversion needs to be done, simply set the buffer pointer
 		pDecoder->decoder.pBuffer = pDecoder->pFrame->data[0];
