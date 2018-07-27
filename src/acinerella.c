@@ -1,6 +1,7 @@
 /*
  * Acinerella -- ffmpeg Wrapper Library
  * Copyright (C) 2008-2018  Andreas Stöckel
+ * Copyright (C) 2018  Harry Sintonen
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -214,9 +215,12 @@ static int io_read(void *opaque, uint8_t *buf, int buf_size) {
 			self->probe_buffer_size = 0;
 			self->probe_buffer_offs = 0;
 		}
+
+		// Return the actual bytes obtained from the memory buffer
+		return (int) cnt;
 	}
 
-	// Try to read the memory from the probe buffer
+	// Read more data by using the read_proc
 	if (self->read_proc != NULL) {
 		return self->read_proc(self->sender, buf, buf_size);
 	}
@@ -228,6 +232,17 @@ static int64_t io_seek(void *opaque, int64_t pos, int whence) {
 	lp_ac_data self = ((lp_ac_data)opaque);
 	if (self->seek_proc != NULL) {
 		if ((whence >= 0) && (whence <= 2)) {
+			// Throw away the probe buffer if seek is performed.
+			// NOTE: This could be improved to check if the seek
+			// is inside the probe_buffer, but it would get really
+			// complicated as real seek would need to be omitted
+			// then.
+			if (self->probe_buffer) {
+				av_free(self->probe_buffer);
+				self->probe_buffer = NULL;
+				self->probe_buffer_size = 0;
+				self->probe_buffer_offs = 0;
+			}
 			return self->seek_proc(self->sender, pos, whence);
 		}
 	}
